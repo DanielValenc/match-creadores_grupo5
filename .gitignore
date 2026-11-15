@@ -6,5 +6,6 @@ state.json
 perfil_tiktok/
 .env
 datos_*.json
-
+node_modules/
+mobile/node_modules/
  
