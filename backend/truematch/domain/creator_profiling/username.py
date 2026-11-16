@@ -18,6 +18,8 @@ class Username:
             raise InvalidUsername(
                 "El usuario debe tener de 2 a 24 caracteres: letras, números, punto o guion bajo, sin @."
             )
+        if set(self.value) == {"."}:
+            raise InvalidUsername("El usuario no puede estar formado solo por puntos.")
 
     @classmethod
     def parse(cls, raw):
