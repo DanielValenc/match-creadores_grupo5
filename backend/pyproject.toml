@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "truematch-backend"
+version = "0.1.0"
+description = "Backend de TrueMatch AI organizado en capas DDD (domain, application, infrastructure, interfaces)."
+requires-python = ">=3.10"
+# Las dependencias se instalan desde requirements.txt en la raíz del repositorio.
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["truematch*"]
