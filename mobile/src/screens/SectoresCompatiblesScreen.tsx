@@ -1,5 +1,4 @@
 import React from 'react';
-import perfil from '../../assets/data/perfil.json';
 import {
   View,
   Text,

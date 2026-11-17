@@ -1,327 +1,454 @@
-# 📊 TikTok Data Extractor + Análisis de Personalidad Big Five
+# TrueMatch AI
 
-Proyecto que **extrae datos públicos de un perfil de TikTok**, los guarda en un archivo JSON, los analiza con **Inteligencia Artificial** para estimar los rasgos del modelo de personalidad **Big Five (OCEAN)** y los muestra en un **dashboard web**.
+**Conecta marcas con creadores de TikTok usando evidencia, no intuición.**
 
-> **Proyecto académico – UCE.** Los resultados son una estimación automática con fines educativos, no un diagnóstico psicológico.
+TrueMatch AI analiza el perfil público de un creador de contenido, estima su personalidad con el modelo Big Five, audita qué tan real es su audiencia y calcula con qué sectores de marca encaja mejor. La marca recibe ese resultado en una app móvil y puede enviarle una propuesta de colaboración.
 
----
-
-## 📑 Contenido
-
-1. [¿Qué hace este proyecto?](#-qué-hace-este-proyecto)
-2. [Estructura del proyecto](#-estructura-del-proyecto)
-3. [Instalación](#-instalación)
-4. [Configuración](#-configuración)
-5. [Cómo usarlo](#-cómo-usarlo)
-6. [Explicación de cada archivo](#-explicación-de-cada-archivo)
-7. [Ejemplo del JSON generado](#-ejemplo-del-json-generado)
-8. [¿Qué es el modelo Big Five?](#-qué-es-el-modelo-big-five)
-9. [Problemas comunes](#-problemas-comunes)
-10. [Limitaciones y consideraciones éticas](#-limitaciones-y-consideraciones-éticas)
+> Proyecto académico · Universidad Central del Ecuador (UCE) · Materia: Dispositivos Móviles · Grupo 5
+> Los resultados son estimaciones automáticas con fines educativos. No son un diagnóstico psicológico ni una auditoría certificada.
 
 ---
 
-## 🎯 ¿Qué hace este proyecto?
+## Contenido
 
-| Etapa | Archivo | ¿Qué hace? |
-|-------|---------|------------|
-| 1. Extracción | `main.py` | Abre un navegador automatizado, entra al perfil de TikTok y guarda estadísticas, foto y los últimos 10 videos con sus descripciones. |
-| 2. Análisis | `analisis_bigfive.py` | Envía las descripciones a una IA (API de Groq) y guarda la estimación de los 5 rasgos de personalidad. |
-| 3. Visualización | `index.html` | Dashboard web que lee el JSON y muestra perfil, barras de personalidad y videos. |
-
-```
-Usuario de TikTok ──► main.py ──► datos_<usuario>.json ──► analisis_bigfive.py ──► (mismo JSON + "analisis_bigfive") ──► index.html
-```
-
-`main.py` ejecuta automáticamente el análisis al terminar la extracción. También puedes correr `analisis_bigfive.py` por separado, con cualquier perfil ya extraído.
-
----
-
-## 📁 Estructura del proyecto
-
-```
-scraper-tiktok-uce/
-├── main.py                  # Extracción (Playwright) + lanza el análisis
-├── analisis_bigfive.py      # Análisis Big Five con IA (Groq)
-├── index.html               # Dashboard web
-├── requirements.txt         # Dependencias de Python
-├── .env.example             # Plantilla de configuración
-├── .gitignore               # Evita subir claves y datos personales
-├── .env                     # TU configuración real (no se sube a Git)
-├── datos_<usuario>.json     # Generado automáticamente por perfil
-└── perfil_tiktok/           # Sesión del navegador (se crea sola)
-```
+1. [Integrantes](#1-integrantes)
+2. [Problema](#2-problema)
+3. [Modelo de negocio](#3-modelo-de-negocio)
+4. [Solución](#4-solución)
+5. [Prototipo en Figma](#5-prototipo-en-figma)
+6. [Metodología: Domain-Driven Design](#6-metodología-domain-driven-design)
+7. [Estructura del proyecto](#7-estructura-del-proyecto)
+8. [Tecnologías](#8-tecnologías)
+9. [Instalación y ejecución](#9-instalación-y-ejecución)
+10. [Inteligencia artificial utilizada](#10-inteligencia-artificial-utilizada)
+11. [Flujo de trabajo del equipo](#11-flujo-de-trabajo-del-equipo)
+12. [Estado del proyecto](#12-estado-del-proyecto)
+13. [Problemas comunes](#13-problemas-comunes)
+14. [Limitaciones y consideraciones éticas](#14-limitaciones-y-consideraciones-éticas)
 
 ---
 
-## ⚙️ Instalación
+## 1. Integrantes
+
+| Integrante | Rama | Responsabilidad |
+|---|---|---|
+| Nicolás Caiza | `feature/nicolas` | Arranque en Expo Go, diseño DDD y arquitectura de la app móvil |
+| Daniel Valencia | `feature/daniel` | Backend: scraping, enriquecimiento Big Five y API |
+| Jair Folleco | `feature/jair` | Documentación y prototipo en Figma |
+| Karen García | `feature/karen` | Estructura académica y reporte de evidencia (PDF) |
+
+---
+
+## 2. Problema
+
+Las marcas y agencias de marketing invierten en creadores de contenido casi a ciegas:
+
+- **El número de seguidores no dice si la audiencia es real.** Seguidores y "me gusta" pueden estar inflados, y la marca termina pagando por un alcance que no existe.
+- **No hay una forma objetiva de saber si un creador encaja con la marca.** La decisión se toma por intuición o por popularidad, sin considerar la personalidad ni el tono del creador.
+- **Evaluar creadores a mano no escala.** Revisar perfiles uno por uno toma tiempo y cada persona lo hace con criterios distintos.
+
+El resultado son campañas con bajo retorno y colaboraciones que no representan a la marca.
+
+---
+
+## 3. Modelo de negocio
+
+| Elemento | Descripción |
+|---|---|
+| **Cliente** | Marcas, emprendimientos y agencias de marketing que contratan creadores de contenido |
+| **Propuesta de valor** | Elegir creadores con datos: personalidad estimada, autenticidad de la audiencia y afinidad por sector, en un solo reporte |
+| **Canal** | App móvil (React Native + Expo) |
+| **Fuente de ingresos** | Suscripción mensual por planes según el número de creadores analizados, y pago por reporte individual |
+| **Recursos clave** | Pipeline de extracción de datos públicos, modelo de IA para el enriquecimiento, algoritmo de auditoría y de matching |
+| **Diferenciador** | Combina personalidad (Big Five) y autenticidad de audiencia (Ley de Benford) en un puntaje de compatibilidad por sector |
+
+---
+
+## 4. Solución
+
+```
+Marca ingresa un usuario de TikTok
+        │
+        ▼
+1. Extracción      Perfil público y videos recientes del creador
+        │
+        ▼
+2. Enriquecimiento Personalidad Big Five, tono e intereses (IA)
+        │
+        ▼
+3. Auditoría       Autenticidad de la audiencia (Ley de Benford)
+        │
+        ▼
+4. Matching        Afinidad por sector y puntaje de match
+        │
+        ▼
+5. Propuesta       La marca contacta al creador desde la app
+```
+
+| Componente | Ubicación | Qué hace |
+|---|---|---|
+| Scraper | `main.py` | Abre un navegador automatizado, entra al perfil de TikTok y guarda estadísticas, foto y los últimos 10 videos |
+| Enriquecimiento | `analisis_bigfive.py` | Envía las descripciones de los videos a un modelo de IA y guarda el perfil Big Five y la afinidad comercial |
+| Dashboard web | `index.html` | Muestra el resultado del análisis en el navegador |
+| App móvil | `mobile/` | App TrueMatch AI para la marca: 7 pantallas basadas en el prototipo de Figma |
+
+---
+
+## 5. Prototipo en Figma
+
+**[Ver prototipo en Figma](https://www.figma.com/design/vhSjNmPShuKV5hoIjUKBZa/Prototipo-APP?node-id=0-1)**
+
+La app sigue el flujo del prototipo. Cada pantalla pertenece a un contexto del dominio:
+
+| # | Pantalla | Qué hace la marca | Contexto |
+|---|---|---|---|
+| 1 | Front | Entra a la app | — |
+| 2 | Onboarding | Ingresa el usuario de TikTok del creador | Creator Profiling |
+| 3 | Loading | Espera mientras se analiza al creador | Creator Profiling |
+| 4 | Dashboard | Ve el resumen: personalidad, audiencia y match | Los tres |
+| 5 | Reporte | Revisa el detalle del análisis y la auditoría | Audience Audit |
+| 6 | Sectores | Consulta los sectores compatibles con el creador | Brand Matching |
+| 7 | Propuesta | Envía una propuesta de colaboración | Brand Matching |
+
+---
+
+## 6. Metodología: Domain-Driven Design
+
+Todo el proyecto, backend y app, se organiza alrededor del negocio y no de la tecnología. Las decisiones de esta sección mandan sobre el código: si un nombre o una regla cambia, se cambia primero aquí.
+
+### 6.1 Dominio
+
+> Ayudar a las marcas a encontrar creadores de TikTok que encajen con ellas, con base en quién es el creador, qué tan real es su audiencia y con qué sectores es compatible.
+
+**Actores**
+
+| Actor | Rol |
+|---|---|
+| **Marca** (`Brand`) | Usuario de la app. Busca y evalúa creadores, y envía propuestas |
+| **Creador** (`Creator`) | Persona con cuenta pública de TikTok que es analizada. No usa la app |
+
+### 6.2 Subdominios
+
+| Subdominio | Tipo | Por qué |
+|---|---|---|
+| Brand Matching | **Principal (core)** | Es lo que diferencia al producto y donde va el mayor cuidado del modelo |
+| Creator Profiling | De soporte | Produce el perfil que alimenta al matching |
+| Audience Audit | De soporte | Produce la medida de autenticidad que alimenta al matching |
+| Extracción de datos de TikTok | Genérico | Se puede reemplazar por otra fuente sin cambiar el negocio |
+| Proveedor de IA | Genérico | Se puede cambiar de proveedor sin cambiar el negocio |
+
+### 6.3 Contextos acotados (bounded contexts)
+
+| Contexto | Responsabilidad | No le corresponde |
+|---|---|---|
+| **Creator Profiling** | Obtener el perfil público y los videos del creador, y estimar su personalidad, tono e intereses | Decidir si el creador conviene a una marca |
+| **Audience Audit** | Determinar qué tan orgánica es la audiencia a partir de sus métricas | Saber cómo se obtuvieron las métricas |
+| **Brand Matching** | Calcular afinidad por sector y puntaje de match, y gestionar las propuestas | Calcular la personalidad o la autenticidad |
+
+### 6.4 Lenguaje ubicuo
+
+El equipo usa estos términos, con este significado, en la documentación, en las conversaciones y en el código. Los nombres en código van en inglés.
+
+| Término | En código | Significado | Contexto |
+|---|---|---|---|
+| Marca | `Brand` | Empresa o agencia de marketing que usa la app para buscar creadores | Brand Matching |
+| Creador | `Creator` | Persona con cuenta pública de TikTok que la marca analiza | Creator Profiling |
+| Usuario | `Username` | Identificador del creador en TikTok, sin `@` | Creator Profiling |
+| Perfil público | `PublicProfile` | Lo visible de la cuenta: seguidores, siguiendo y me gusta | Creator Profiling |
+| Video | `Video` | Publicación reciente del creador, con su descripción y enlace | Creator Profiling |
+| Perfil Big Five | `BigFiveProfile` | Los cinco rasgos de personalidad del creador | Creator Profiling |
+| Rasgo | `TraitScore` | Valor de un rasgo, de 0 a 100, independiente de los demás | Creator Profiling |
+| Auditoría de audiencia | `AudienceAudit` | Revisión de las métricas del creador con la Ley de Benford | Audience Audit |
+| Porcentaje orgánico | `OrganicScore` | Resultado de la auditoría: qué parte de la audiencia parece real, de 0 a 100 | Audience Audit |
+| Sector | `Sector` | Categoría de marca con la que se compara al creador | Brand Matching |
+| Afinidad | `SectorAffinity` | Qué tanto encaja un creador con un sector, de 0 a 100 | Brand Matching |
+| Puntaje de match | `MatchScore` | Compatibilidad general entre una marca y un creador, de 0 a 100 | Brand Matching |
+| Propuesta | `Proposal` | Oferta de colaboración que la marca envía al creador | Brand Matching |
+
+### 6.5 Mapa de contexto
+
+```mermaid
+flowchart LR
+    TK[("TikTok<br/>sistema externo")] -->|"ACL: scraper"| CP["Creator Profiling"]
+    GQ[("Proveedor de IA<br/>sistema externo")] -->|"ACL: cliente de IA"| CP
+    CP -->|"métricas de videos"| AA["Audience Audit"]
+    CP -->|"BigFiveProfile"| BM["Brand Matching"]
+    AA -->|"OrganicScore"| BM
+    BM --> APP["App móvil<br/>Marca"]
+```
+
+| Relación | Tipo | Significado |
+|---|---|---|
+| Creator Profiling → Audience Audit | Proveedor / cliente | Profiling entrega las métricas; Audit las consume |
+| Creator Profiling → Brand Matching | Proveedor / cliente | Profiling entrega el perfil Big Five; Matching lo consume |
+| Audience Audit → Brand Matching | Proveedor / cliente | Audit entrega el porcentaje orgánico; Matching lo consume |
+| TikTok → Creator Profiling | Capa anticorrupción (ACL) | Un adaptador traduce la página de TikTok a nuestro modelo. Si TikTok cambia, solo cambia el adaptador |
+| Proveedor de IA → Creator Profiling | Capa anticorrupción (ACL) | Un adaptador traduce la respuesta del modelo a `BigFiveProfile`. Cambiar de proveedor solo toca el adaptador |
+
+### 6.6 Diseño táctico
+
+**Capas y regla de dependencia**
+
+```
+presentation  ──►  application  ──►  domain  ◄──  infrastructure
+(pantallas)        (casos de uso)    (negocio)     (API, scraper, IA)
+```
+
+- `domain` no depende de nada: ni de React, ni de Expo, ni de HTTP, ni de Playwright.
+- `application` solo conoce al dominio y define **puertos** (interfaces) para lo que necesita de afuera.
+- `infrastructure` implementa esos puertos.
+- `presentation` solo habla con `application`. Ninguna pantalla contiene datos fijos ni reglas de negocio.
+
+**Bloques por contexto**
+
+| Contexto | Entidades | Objetos de valor | Servicios de dominio |
+|---|---|---|---|
+| Creator Profiling | `Creator` (raíz del agregado), `Video` | `Username`, `PublicProfile`, `BigFiveProfile`, `TraitScore` | — |
+| Audience Audit | `AudienceAudit` | `OrganicScore` | `BenfordAnalyzer` |
+| Brand Matching | `Brand`, `Proposal` | `Sector`, `SectorAffinity`, `MatchScore` | `MatchCalculator` |
+
+**Casos de uso (application)**
+
+| Caso de uso | Qué hace | Pantalla que lo usa |
+|---|---|---|
+| `AnalyzeCreator` | Obtiene el perfil del creador y su `BigFiveProfile` | Onboarding, Loading |
+| `AuditAudience` | Calcula el `OrganicScore` del creador | Dashboard, Reporte |
+| `GetCompatibleSectors` | Devuelve las `SectorAffinity` y el `MatchScore` | Dashboard, Sectores |
+| `SendProposal` | Registra y envía una `Proposal` al creador | Propuesta |
+
+**Puertos y adaptadores**
+
+| Puerto (application) | Adaptadores (infrastructure) |
+|---|---|
+| `CreatorRepository` | `MockCreatorRepository` (JSON de ejemplo), `ApiCreatorRepository` (API del backend) |
+| `ProposalGateway` | `ApiProposalGateway` |
+
+**Reglas del dominio (invariantes)**
+
+1. Un `Username` no puede estar vacío y se guarda sin `@`.
+2. Cada `TraitScore` es un entero entre 0 y 100.
+3. Los cinco rasgos del `BigFiveProfile` son **independientes**: no se normalizan ni tienen que sumar 100.
+4. `OrganicScore`, `SectorAffinity` y `MatchScore` van de 0 a 100.
+5. Solo se puede crear una `Proposal` para un `Creator` que ya fue analizado.
+
+---
+
+## 7. Estructura del proyecto
+
+Estructura objetivo del repositorio. El avance real de cada parte está en la sección [Estado del proyecto](#12-estado-del-proyecto).
+
+```
+match-creadores_grupo5/
+├── README.md
+├── docs/                       Reporte y evidencias
+├── main.py                     Scraper de TikTok (Playwright)
+├── analisis_bigfive.py         Enriquecimiento con IA
+├── index.html                  Dashboard web
+├── requirements.txt
+└── mobile/                     App TrueMatch AI (Expo)
+    ├── App.tsx
+    ├── index.ts
+    ├── app.json
+    ├── package.json
+    ├── tsconfig.json
+    ├── assets/
+    └── src/
+        ├── domain/
+        │   ├── creator-profiling/   Creator, Video, Username, PublicProfile, BigFiveProfile, TraitScore
+        │   ├── audience-audit/      AudienceAudit, OrganicScore, BenfordAnalyzer
+        │   └── brand-matching/      Brand, Proposal, Sector, SectorAffinity, MatchScore
+        ├── application/
+        │   ├── use-cases/           AnalyzeCreator, AuditAudience, GetCompatibleSectors, SendProposal
+        │   └── ports/               CreatorRepository, ProposalGateway
+        ├── infrastructure/
+        │   ├── repositories/        MockCreatorRepository, ApiCreatorRepository
+        │   └── mappers/             JSON del backend → objetos del dominio
+        └── presentation/
+            ├── screens/             Las 7 pantallas
+            ├── components/          Logo, PrimaryButton
+            ├── navigation/          Stack de navegación
+            ├── hooks/               useAnalyzeCreator, useCompatibleSectors
+            └── theme.ts             Paleta de colores
+```
+
+El backend seguirá el mismo reparto de capas (`domain`, `application`, `infrastructure`, `interfaces`) cuando el pipeline se exponga como API.
+
+---
+
+## 8. Tecnologías
+
+| Capa | Tecnología |
+|---|---|
+| App móvil | React Native 0.88, Expo SDK 58 (Expo Go), TypeScript, React Navigation 7 |
+| Extracción de datos | Python 3.9+, Playwright (Chromium) |
+| Enriquecimiento | API de Groq, modelo configurable por variable de entorno |
+| Dashboard web | HTML, JavaScript, Tailwind CSS |
+| Diseño | Figma |
+| Control de versiones | Git y GitHub, con Conventional Commits |
+
+---
+
+## 9. Instalación y ejecución
 
 ```bash
-git clone <URL-de-tu-repositorio>
-cd scraper-tiktok-uce
+git clone https://github.com/DanielValenc/match-creadores_grupo5.git
+cd match-creadores_grupo5
+```
 
-# Entorno virtual (recomendado)
+### 9.1 App móvil (Expo Go)
+
+Requisitos: Node.js LTS y la app **Expo Go** instalada en el teléfono.
+
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+Escanea el código QR con Expo Go (Android) o con la cámara (iOS). El teléfono y la computadora deben estar en la misma red wifi.
+
+### 9.2 Extracción y enriquecimiento (Python)
+
+```bash
 python -m venv venv
-source venv/Scripts/activate      # Git Bash / Windows
-# source venv/bin/activate        # Mac / Linux
+source venv/bin/activate          # Mac / Linux
+# source venv/Scripts/activate    # Windows (Git Bash)
 
 pip install -r requirements.txt
 playwright install chromium
 ```
 
-Requiere **Python 3.9 o superior**. `requirements.txt` instala `playwright`, `requests` y `python-dotenv`.
-
----
-
-## 🔑 Configuración
-
-El análisis necesita una **API Key de Groq** (puedes crear una en [console.groq.com](https://console.groq.com)). La clave **no se escribe en el código**: se lee desde una variable de entorno.
-
-### Opción A: archivo `.env` (recomendada)
-
-```bash
-cp .env.example .env
-```
-
-Edita `.env`:
+Crea un archivo `.env` en la raíz con tu clave de Groq (se obtiene en [console.groq.com](https://console.groq.com)):
 
 ```
 GROQ_API_KEY=tu_clave_aqui
 GROQ_MODEL=qwen/qwen3.8-27b
 ```
 
-### Opción B: variable de entorno en la terminal
-
-```bash
-export GROQ_API_KEY="tu_clave"        # Git Bash / Mac / Linux
-set GROQ_API_KEY=tu_clave             # Windows CMD
-```
-
 | Variable | Obligatoria | Descripción |
-|----------|-------------|-------------|
-| `GROQ_API_KEY` | Sí | Tu clave de la API de Groq. |
-| `GROQ_MODEL` | No | Modelo a usar. Por defecto: `qwen/qwen3.8-27b`. |
+|---|---|---|
+| `GROQ_API_KEY` | Sí | Clave de la API de Groq |
+| `GROQ_MODEL` | No | Modelo a usar. Tiene un valor por defecto |
 
-> ⚠️ Nunca subas tu `.env` a GitHub. Ya está incluido en `.gitignore`. Si tu clave se expuso alguna vez, genera una nueva en Groq.
+> El archivo `.env` está en `.gitignore`. Nunca lo subas al repositorio.
 
----
-
-## 🚀 Cómo usarlo
-
-### 1. Extraer y analizar un perfil (todo en uno)
+**Extraer y analizar un creador**
 
 ```bash
-python main.py                      # te pregunta el usuario
-python main.py danielvalencia365    # usuario como argumento
-python main.py usuario --sin-analisis   # solo extrae, sin IA
+python main.py                        # pregunta el usuario
+python main.py nombre_usuario         # usuario como argumento
+python main.py usuario --sin-analisis # solo extrae, sin IA
 ```
 
-Se abrirá Chrome. Si TikTok muestra un **Captcha**, resuélvelo manualmente (el programa espera hasta 60 segundos). Al terminar se crea `datos_<usuario>.json` con el análisis incluido.
+Se abre Chromium. Si TikTok muestra un captcha, resuélvelo a mano; el programa espera hasta 60 segundos. Al terminar se crea `datos_<usuario>.json`.
 
-### 2. Analizar perfiles ya extraídos
-
-```bash
-python analisis_bigfive.py                      # te pregunta el usuario
-python analisis_bigfive.py danielvalencia365    # por usuario
-python analisis_bigfive.py datos_ana.json       # por archivo
-python analisis_bigfive.py usuario1 usuario2    # varios a la vez
-python analisis_bigfive.py --todos              # todos los datos_*.json de la carpeta
-```
-
-### 3. Ver los modelos disponibles o usar otro
+**Analizar creadores ya extraídos**
 
 ```bash
+python analisis_bigfive.py nombre_usuario
+python analisis_bigfive.py --todos
 python analisis_bigfive.py --listar-modelos
-python analisis_bigfive.py usuario --modelo nombre-del-modelo
 ```
 
-### 4. Ver el dashboard
-
-El dashboard lee el JSON con `fetch()`, por lo que **no funciona abriendo el HTML con doble clic**. Sírvelo desde un servidor local, en la carpeta del proyecto:
+### 9.3 Dashboard web
 
 ```bash
 python -m http.server 8000
 ```
 
-Abre **http://localhost:8000/index.html**, escribe el usuario y presiona **Cargar Datos**.
+Abre `http://localhost:8000/index.html`, escribe el usuario y presiona **Cargar Datos**. No funciona abriendo el HTML con doble clic, porque lee el JSON con `fetch()`.
 
 ---
 
-## 📖 Explicación de cada archivo
+## 10. Inteligencia artificial utilizada
 
-### `main.py` – Extracción de datos
+**Dentro del producto**
 
-Usa **Playwright** para controlar un navegador real:
+| IA | Uso |
+|---|---|
+| API de Groq (modelo Qwen) | Estima el perfil Big Five, el resumen de personalidad, el tono, los intereses y la afinidad por sector a partir de las descripciones de los videos |
 
-1. Abre Chromium con **sesión persistente** (`perfil_tiktok/`) para reducir Captchas.
-2. Entra a `https://www.tiktok.com/@usuario`.
-3. Extrae **siguiendo, seguidores y me gusta**, y la **foto de perfil** (con imagen de reemplazo si falla).
-4. Hace **scroll simulado** para que TikTok cargue los videos.
-5. Captura **enlace, miniatura y descripción** de cada video, sin duplicados, y conserva los primeros 10.
-6. Guarda todo en `datos_<usuario>.json` (UTF-8) y, si no usaste `--sin-analisis`, llama al análisis Big Five.
+**Durante el desarrollo**
 
-> Los selectores como `strong[title="Seguidores"]` están en **español**: TikTok debe mostrarse en ese idioma. Si no, ajusta esos textos.
+| IA | Uso |
+|---|---|
+| Claude (Anthropic) | Análisis del estado del proyecto frente a la consigna, diseño estratégico y táctico de DDD, organización del trabajo del equipo y redacción de la documentación |
+| Claude Code | Análisis del repositorio desde la terminal y aplicación de cambios en el código, revisados y confirmados manualmente por el equipo |
 
-### `analisis_bigfive.py` – Análisis con IA
-
-1. Lee la API Key desde `GROQ_API_KEY` y el modelo desde `GROQ_MODEL`.
-2. Abre el JSON del perfil e ignora las descripciones vacías o "Sin descripción disponible".
-3. Une las descripciones (máximo 6000 caracteres) y le pide a la IA un JSON con `Apertura`, `Responsabilidad`, `Extraversion`, `Amabilidad`, `Neuroticismo` (0 a 100) y un `resumen`.
-4. Procesa la respuesta: ignora bloques `<think>` y texto extra, y verifica que estén los 5 rasgos con valores entre 0 y 100.
-5. Guarda el resultado en el mismo archivo bajo la clave `analisis_bigfive`.
-
-### `index.html` – Dashboard
-
-Muestra foto y usuario, tarjetas de estadísticas, **barras de progreso** de cada rasgo con el resumen de personalidad (si el JSON ya fue analizado) y la **cuadrícula de videos** con miniatura, descripción y enlace original.
+Los prompts utilizados y sus resultados están documentados en el reporte de evidencia (`docs/`).
 
 ---
 
-## 🧾 Ejemplo del JSON generado
+## 11. Flujo de trabajo del equipo
 
-```json
-{
-    "usuario": "danielvalencia365",
-    "perfil": {
-        "foto_perfil": "https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/91d69fc1507151cdd419d923eab6d43e~tplv-tiktokx-cropcenter:1080:1080.jpeg?dr=14579&refresh_token=38f86b50&x-expires=1792875600&x-signature=CkPhWHBTB8Z1bpyBGsCpfCn3jxw%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=my3",
-        "siguiendo": "1214",
-        "seguidores": "2129",
-        "me_gusta": "260.7K"
-    },
-    "videos_recientes": [
-        {
-            "posicion": 1,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7502953069521456439",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/o4EZSAREIBAfBQAfAoAQ9ItzJCFgg2HD9kYWqs~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=Tq4yz2YuabNNIHyfKKuQcpezRTw%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Mi primer concierto de Star Wars! ✨#starwars #anakinskywalker #starwarsfyp #starwarsday  creado por Daniel Valencia con la música Star Wars - Produced de Ettore Stratta",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 2,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7454306956283530502",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/ooAAwIA0zqnAeRTBcuEyCFcERBLDWQSJpEfBkm~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=aoVNknsRXNpx9FmdIlOO7XQF6S8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Pequeño unboxing del libro de DUNE!#unboxingvideo #dune  #paulatreides #viral #booktok  creado por Daniel Valencia con la música BIRDS OF A FEATHER de Billie Eilish",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 3,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7452760253722053893",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/o4AHCYwhDQDfAbzXAjFAJ6R8pCfBnABIEoQQEb~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=YTCSZwTQd7W2d%2FEKOYAGM8SGVeg%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Lo dimos todo!👀#lalala #gf #Parejas #parejatiktok  creado por Daniel Valencia con la música La La La - Sped Up Version de Naughty Boy & Sam Smith",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 4,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7417292548919545093",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/93aefe213815437cb7597f76693323d9_1726973008~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=uRIfdwqOgmXKB0H8sv8J4AXYsgI%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "fue demasiado divertido  #disney #ridepov #hollywoodstudios #mickeyandminniesrunawayrailway  creado por Daniel Valencia con la música sonido original de Daniel Valencia",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 5,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7412425582337756421",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/o06EB3gJnQAjclJ6OWcm8fCfQQE5XBDOmIJRKF~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=e3x62Mq96CGJIjI9veEMqY44FxM%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Uno de los mejores dias de mi vida! ❤️#universalstudios #harrypotter #orlandoflorida  creado por Daniel Valencia con la música sonido original de Daniel Valencia",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 6,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7410479795697487109",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/08f430e71c6947f3a12bb7bef73c4439_1725386794~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=MKGI%2FgWhr7lkQ6RnHqtILGBCaO0%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Buscando libros en Target! 🎯 #book #target #librosespañol #dune  creado por Daniel Valencia con la música sonido original de Daniel Valencia",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 7,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7407831828595494149",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/82c8a65ae8d8490e93d506281d34ddf9_1724770259~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=aFYBqwacRpuz7qgH5%2BKqsn6aAnI%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Diganme que no soy el único:( #viral #fryp #humor  creado por Daniel Valencia con la música sonido original de Daniel Valencia",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 8,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7407232682230353158",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/oYmfILVEADEg6Q1REx0BfFuoaBJMsQ6XR8yZXC~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=7KHXL7Z6eaCCwawBI9l6R6XbBPg%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Desde cuando los delfines tiene una canción #symphony #dolphin #fryp  creado por Daniel Valencia con la música Symphony de Clean Bandit,Zara Larsson",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 9,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7396801553195175173",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/ocMNFS97gCIT3QQl68jbIfwCswW4WgxeDtAfWN~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=H9BJ%2B5cqxd7Zwpg7Cz1Ng32IIJE%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Mori de risa toda la película 😂#deadpoolandwolverine #marvel #deadpool3 #deadpoolwolverine  creado por Daniel Valencia con la música Bye Bye Bye de *NSYNC",
-            "estado": "Extraído exitosamente"
-        },
-        {
-            "posicion": 10,
-            "enlace": "https://www.tiktok.com/@danielvalencia365/video/7395676230688754950",
-            "miniatura": "https://p16-common-sign.tiktokcdn.com/tos-maliva-p-0068/77a73737ad974857a7829441f6bcd9ba_1721940067~tplv-tiktokx-origin.image?dr=14575&x-expires=1792875600&x-signature=sVIDxytuB4v6Pwtlf0Pp8luM4Jw%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=my2",
-            "descripcion": "Listos para la Graduación! 🧑🏻‍🎓🎉#prom2024 #graduacion #traje #formal  creado por Daniel Valencia con la música BIRDS OF A FEATHER sped up de Lilly (unraveled)",
-            "estado": "Extraído exitosamente"
-        }
-    ],
-    "analisis_bigfive": {
-        "Apertura": 75,
-        "Responsabilidad": 60,
-        "Extraversion": 85,
-        "Amabilidad": 80,
-        "Neuroticismo": 20,
-        "resumen": "Personalidad extrovertida, sociable y orientada al placer, con un fuerte interés en la cultura pop, viajes y experiencias compartidas. Muestra alta energía, optimismo y una tendencia a buscar la diversión y la validación social a través de contenido viral y momentos memorables."
-    }
-}
-```
+**Ramas**
 
----
-![Dashboard del proyecto](img/ejemplodv.png)
+| Rama | Uso |
+|---|---|
+| `main` | Versión de entrega. Solo recibe cambios desde `dev` |
+| `dev` | Integración. Recibe los pull requests de cada integrante |
+| `feature/<nombre>` | Trabajo de cada integrante |
+
+**Pasos**
+
+1. Trae lo último de `dev` a tu rama: `git pull origin dev`
+2. Trabaja y haz commits pequeños con Conventional Commits.
+3. Sube tu rama: `git push origin feature/<nombre>`
+4. Abre un pull request hacia `dev`.
+
+**Conventional Commits**
+
+| Tipo | Cuándo | Ejemplo |
+|---|---|---|
+| `feat` | Funcionalidad nueva | `feat(mobile): agregar caso de uso AnalyzeCreator` |
+| `fix` | Corrección de un error | `fix(backend): guardar rasgos Big Five sin normalizar` |
+| `refactor` | Reorganizar sin cambiar el comportamiento | `refactor(mobile): mover pantallas a presentation` |
+| `docs` | Documentación | `docs(readme): agregar diseño DDD` |
+| `chore` | Configuración y mantenimiento | `chore(repo): actualizar .gitignore` |
 
 ---
 
-![Dashboard del proyecto](img/ejemplodv2.png)
+## 12. Estado del proyecto
 
-
-## 🧠 ¿Qué es el modelo Big Five?
-
-También conocido como **OCEAN**, describe la personalidad en cinco dimensiones:
-
-| Rasgo | Significa… | Puntaje alto | Puntaje bajo |
-|-------|-----------|--------------|--------------|
-| **O**penness (Apertura) | Curiosidad y creatividad | Imaginativo, abierto a nuevas ideas | Práctico, prefiere lo conocido |
-| **C**onscientiousness (Responsabilidad) | Organización y disciplina | Ordenado, cumplido | Espontáneo, flexible |
-| **E**xtraversion (Extraversión) | Energía social | Sociable, expresivo | Reservado, tranquilo |
-| **A**greeableness (Amabilidad) | Empatía y cooperación | Cálido, colaborador | Directo, competitivo |
-| **N**euroticism (Neuroticismo) | Sensibilidad emocional | Más ansioso o reactivo | Calmado, estable |
-
----
-
-## 🩺 Problemas comunes
-
-| Problema | Posible causa | Solución |
-|----------|---------------|----------|
-| *"TikTok bloqueó la conexión o saltó un Captcha"* | Detección de bot o página que no cargó | Borra `perfil_tiktok/`, espera unos minutos, reintenta y resuelve el Captcha a mano. |
-| No encuentra los selectores de estadísticas | TikTok cambió su HTML o el idioma no es español | Actualiza los selectores en `main.py`. |
-| *"no se encontró la variable de entorno GROQ_API_KEY"* | No configuraste la clave | Revisa tu `.env` o exporta la variable. |
-| Error 401 de la API | API Key inválida | Genera una nueva en Groq. |
-| Error 404 `model_not_found` | Tu cuenta no tiene acceso a ese modelo | Ejecuta `--listar-modelos` y cambia `GROQ_MODEL`. |
-| *"Error procesando la respuesta de la IA"* | La IA no devolvió un JSON válido | Vuelve a ejecutar el análisis. |
-| *"no tiene descripciones de videos"* | Los videos no traen texto | Prueba con otro perfil. |
-| El dashboard no encuentra el archivo | Abriste el HTML con doble clic o el usuario no coincide | Usa `python -m http.server` y escribe el usuario exacto. |
+| Parte | Estado |
+|---|---|
+| Extracción del perfil y videos de TikTok | ✅ Funciona |
+| Enriquecimiento Big Five con IA | ✅ Funciona |
+| Dashboard web | ✅ Funciona |
+| App en Expo Go con las 7 pantallas del prototipo | ✅ Funciona |
+| Diseño DDD: dominio, contextos, lenguaje ubicuo y mapa de contexto | ✅ Definido |
+| App reestructurada en capas DDD | 🚧 En progreso |
+| Corrección del Big Five (rasgos independientes, sin normalizar) | 🚧 En progreso |
+| Backend expuesto como API | 🚧 En progreso |
+| App consumiendo datos reales del backend | 🚧 En progreso |
+| Auditoría real con la Ley de Benford (requiere extraer likes y vistas por video) | 🚧 En progreso |
+| Envío de propuestas | 🚧 En progreso |
 
 ---
 
-## ⚖️ Limitaciones y consideraciones éticas
+## 13. Problemas comunes
 
-- **No es un test psicológico validado.** La IA estima rasgos a partir de pocas descripciones y hashtags. Los porcentajes son orientativos.
-- **Muestra pequeña:** solo se analizan 10 videos.
-- **Privacidad:** usa únicamente cuentas públicas, con fines educativos y, cuando sea posible, con consentimiento de la persona. No tomes decisiones sobre nadie con estos resultados.
-- **Términos de uso:** el scraping puede ir contra los términos de TikTok y su estructura cambia a menudo, por lo que el código puede requerir mantenimiento.
-- **Datos enviados a terceros:** las descripciones se envían a la API de Groq para ser procesadas.
+| Problema | Causa probable | Solución |
+|---|---|---|
+| Expo Go no carga la app | El teléfono y la computadora están en redes distintas | Conéctalos a la misma wifi o usa `npx expo start --tunnel` |
+| `package.json does not exist` al iniciar Expo | Estás en la raíz y no en `mobile/` | Ejecuta `cd mobile` antes de `npx expo start` |
+| TikTok bloquea o muestra un captcha | Detección de bot | Borra `perfil_tiktok/`, espera unos minutos, reintenta y resuelve el captcha a mano |
+| No encuentra las estadísticas del perfil | TikTok cambió su HTML o no está en español | Actualiza los selectores en `main.py` |
+| Falta `GROQ_API_KEY` | No existe el archivo `.env` | Crea el `.env` como se indica en la sección 9.2 |
+| Error 401 de la API | Clave inválida | Genera una nueva clave en Groq |
+| Error 404 `model_not_found` | La cuenta no tiene acceso a ese modelo | Ejecuta `--listar-modelos` y cambia `GROQ_MODEL` |
+| El dashboard no encuentra el archivo | Se abrió el HTML con doble clic o el usuario no coincide | Usa `python -m http.server` y escribe el usuario exacto |
 
 ---
 
-## 👤 Autor
+## 14. Limitaciones y consideraciones éticas
 
-**[Daniel Valencia Torres]** – Universidad Central del Ecuador (UCE)
-📧 [devalenciat@uce.edu.ec]
+- **No es un test psicológico validado.** La IA estima los rasgos a partir de pocas descripciones y hashtags. Los valores son orientativos.
+- **Muestra pequeña.** Se analizan 10 videos por creador.
+- **Privacidad.** Se usan únicamente cuentas públicas, con fines educativos y, cuando es posible, con consentimiento de la persona. No se deben tomar decisiones sobre nadie solo con estos resultados.
+- **Términos de uso.** El scraping puede ir contra los términos de TikTok, y su estructura cambia con frecuencia, por lo que el código puede requerir mantenimiento.
+- **Datos enviados a terceros.** Las descripciones de los videos se envían a la API de Groq para ser procesadas.
 
-## 📄 Repositorio
- Url:https://github.com/DanielValenc/scraper-tiktok-uce.git
+---
 
+Universidad Central del Ecuador · Dispositivos Móviles · Grupo 5
