@@ -1,7 +1,7 @@
 """TikTokCreatorSource: capa anticorrupción entre TikTok (motor SCRAPINGTIKTOK) y el dominio.
 
 scrape_profile y extract_profile vienen de media-scraper (backend/reference_engine.py, commit a3ef81d) con
-estos cambios: 25 videos, sin listas de seguidores/seguidos (max_list_items=0) ni comentarios
+estos cambios: 30 videos, sin listas de seguidores/seguidos (max_list_items=0) ni comentarios
 (max_comments_per_video=0), y headless configurable. Ver docs/plan-backend.md, paso 9.
 """
 import asyncio
@@ -20,7 +20,7 @@ from .adapter import adapt_profile
 from .runtime import USERNAME, AccessRestricted, IdentityError
 from .vendor.scrapingtiktok.tiktok_scraper import TikTokScraper
 
-MAX_VIDEOS = 25
+MAX_VIDEOS = 30
 logger = logging.getLogger(__name__)
 
 

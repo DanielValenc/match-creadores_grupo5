@@ -30,7 +30,7 @@ if str(BACKEND_DIR) not in sys.path:
 def scrape_tiktok_profile(username):
     """Extrae el perfil con el motor SCRAPINGTIKTOK y guarda datos_<usuario>.json.
     Devuelve el nombre del archivo o None si falla (misma firma y contrato que el scraper anterior)."""
-    print(f"\nIniciando extracción para: @{username.strip().lstrip('@')} (motor SCRAPINGTIKTOK, hasta 25 videos)")
+    print(f"\nIniciando extracción para: @{username.strip().lstrip('@')} (motor SCRAPINGTIKTOK, hasta 30 videos)")
     try:
         # Import diferido: --motor legado sigue funcionando aunque falte alguna dependencia nueva.
         from truematch.domain.creator_profiling.username import Username
@@ -154,6 +154,48 @@ def scrape_tiktok_profile_legado(username):
     return nombre_archivo
 
 
+def _numero(valor):
+    """Entero con separador de miles; '—' si se desconoce. Los textos del scraper legado se muestran tal cual."""
+    if valor is None:
+        return "—"
+    if isinstance(valor, int) and not isinstance(valor, bool):
+        return f"{valor:,}".replace(",", ".")
+    return str(valor)
+
+
+def imprimir_resumen(archivo):
+    """Resumen legible de datos_<usuario>.json: una línea de perfil y una tabla con una fila por video."""
+    with open(archivo, "r", encoding="utf-8") as f:
+        datos = json.load(f)
+    perfil = datos.get("perfil", {})
+    print(f"\nPerfil @{datos.get('usuario', '?')}: {_numero(perfil.get('seguidores'))} seguidores · "
+          f"{_numero(perfil.get('siguiendo'))} siguiendo · {_numero(perfil.get('me_gusta'))} me gusta")
+
+    columnas = ("#", "Fecha", "Vistas", "Likes", "Coment.", "Compart.", "Guard.", "Descripción")
+    filas = []
+    for video in datos.get("videos_recientes", []):
+        fecha = (video.get("fecha_publicacion") or "")[:10] or "—"
+        descripcion = " ".join(str(video.get("descripcion") or "").split())
+        if len(descripcion) > 40:
+            descripcion = descripcion[:39] + "…"
+        filas.append((str(video.get("posicion", "")), fecha,
+                      *(_numero(video.get(k)) for k in ("vistas", "me_gusta", "comentarios", "compartidos", "guardados")),
+                      descripcion))
+    anchos = [max(len(columnas[i]), *(len(fila[i]) for fila in filas)) if filas else len(columnas[i])
+              for i in range(len(columnas))]
+
+    def linea(celdas):
+        # Números alineados a la derecha (columnas 0 y 2-6); fecha y descripción a la izquierda.
+        return "  ".join(c.rjust(anchos[i]) if i in (0, 2, 3, 4, 5, 6) else c.ljust(anchos[i])
+                         for i, c in enumerate(celdas)).rstrip()
+
+    print(linea(columnas))
+    print(linea(tuple("-" * a for a in anchos)))
+    for fila in filas:
+        print(linea(fila))
+    print(f"{len(filas)} videos")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Extrae datos de TikTok y analiza Big Five.")
     parser.add_argument("usuario", nargs="?", help="Username de TikTok (sin @)")
@@ -170,6 +212,9 @@ def main():
         archivo = scrape_tiktok_profile_legado(usuario)
     else:
         archivo = scrape_tiktok_profile(usuario)
+
+    if archivo:
+        imprimir_resumen(archivo)
 
     if archivo and not args.sin_analisis:
         # Se importa aquí para no exigir GROQ_API_KEY si solo se quiere extraer
