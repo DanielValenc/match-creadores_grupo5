@@ -1,8 +1,9 @@
 """Cliente HTTP mínimo de Groq (API compatible con OpenAI). Misma petición que hacía analisis_bigfive.py."""
 import requests
 
+from truematch.infrastructure.config import DEFAULT_GROQ_MODEL as DEFAULT_MODEL
+
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_MODEL = "qwen/qwen3.8-27b"
 SYSTEM_MESSAGE = "You output only valid JSON without markdown formatting."
 
 

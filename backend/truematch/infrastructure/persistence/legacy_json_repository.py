@@ -110,6 +110,18 @@ def personality_sections(analysis: PersonalityAnalysis):
     return bigfive, evidence, commercial
 
 
+def legacy_document(creator: Creator, audit: AudienceAudit | None = None,
+                    personality: PersonalityAnalysis | None = None):
+    """El documento completo de datos_<usuario>.json (lo que escribe save y lo que recibe la web)."""
+    data = to_legacy_dict(creator)
+    if personality is not None:
+        data["analisis_bigfive"], data["analisis_bigfive_evidencia"], data["perfil_comercial"] = \
+            personality_sections(personality)
+    if audit is not None:
+        data["auditoria_audiencia"] = audit_section(audit)
+    return data
+
+
 def _count(value):
     """Solo enteros exactos; los textos del scraper legado ("1.2M") y lo demás quedan como desconocidos."""
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
@@ -179,13 +191,7 @@ class LegacyJsonCreatorRepository(CreatorRepository):
     def save(self, creator: Creator, audit: AudienceAudit | None = None,
              personality: PersonalityAnalysis | None = None):
         """Escribe datos_<usuario>.json completo (reemplaza el anterior) y devuelve su ruta."""
-        data = to_legacy_dict(creator)
-        if personality is not None:
-            data["analisis_bigfive"], data["analisis_bigfive_evidencia"], data["perfil_comercial"] = \
-                personality_sections(personality)
-        if audit is not None:
-            data["auditoria_audiencia"] = audit_section(audit)
-        return self._write(self.path_for(creator.username), data)
+        return self._write(self.path_for(creator.username), legacy_document(creator, audit, personality))
 
     def load(self, username: Username) -> Creator:
         with open(self.path_for(username), "r", encoding="utf-8") as stream:

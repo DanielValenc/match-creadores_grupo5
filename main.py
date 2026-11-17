@@ -37,10 +37,11 @@ def analizar_creador(username, analizador=None):
         # Import diferido: --help funciona aunque falte alguna dependencia (Playwright, filelock).
         from truematch.application.use_cases.analyze_creator import AnalyzeCreator
         from truematch.domain.creator_profiling.username import Username
+        from truematch.infrastructure.config import load_settings
         from truematch.infrastructure.persistence.legacy_json_repository import LegacyJsonCreatorRepository
         from truematch.infrastructure.tiktok.tiktok_creator_source import TikTokCreatorSource
 
-        caso_de_uso = AnalyzeCreator(TikTokCreatorSource(), LegacyJsonCreatorRepository("."), analizador)
+        caso_de_uso = AnalyzeCreator(TikTokCreatorSource(), LegacyJsonCreatorRepository(load_settings().data_dir), analizador)
         resultado = caso_de_uso.execute(Username.parse(username))
     except Exception as e:
         print("\nError: no se pudo extraer el perfil.")
