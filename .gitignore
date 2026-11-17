@@ -1,11 +1,9 @@
 venv/
 __pycache__/
-*.json
 *.csv
-state.json
-perfil_tiktok/
 .env
 datos_*.json
 node_modules/
 mobile/node_modules/
- 
+.idea/
+.truematch/

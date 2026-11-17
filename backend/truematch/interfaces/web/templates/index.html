@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101827" />
+    <title>Match Creadores | TikTok Intelligence</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #142033;
+        --muted: #68758a;
+        --line: #e7ebf1;
+        --paper: #f5f7fa;
+        --white: #fff;
+        --navy: #101827;
+        --blue: #4b75f2;
+        --cyan: #36c6c8;
+        --green: #17a87b;
+        --shadow: 0 14px 40px rgba(20, 32, 51, 0.07);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      .topbar {
+        background: var(--navy);
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .topbar-inner {
+        width: min(1180px, calc(100% - 40px));
+        margin: auto;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        font-size: 14px;
+      }
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 11px;
+        color: #07141b;
+        background: linear-gradient(135deg, #52dfc4, #67a9ff);
+        font-size: 17px;
+      }
+      .top-note {
+        color: #aeb9ca;
+        font-size: 12px;
+      }
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin: 34px auto 70px;
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 34px;
+        border-radius: 24px;
+        color: white;
+        background:
+          radial-gradient(
+            circle at 90% 15%,
+            rgba(64, 180, 190, 0.28),
+            transparent 30%
+          ),
+          linear-gradient(120deg, #14243c, #1b3150 68%, #1b4650);
+        box-shadow: 0 18px 48px rgba(20, 40, 65, 0.16);
+      }
+      .hero:after {
+        content: "";
+        position: absolute;
+        width: 270px;
+        height: 270px;
+        right: -100px;
+        bottom: -170px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 35px rgba(255, 255, 255, 0.025),
+          0 0 0 70px rgba(255, 255, 255, 0.02);
+        pointer-events: none;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #72dfcf;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 11px 0 8px;
+        font-size: clamp(27px, 4vw, 38px);
+        line-height: 1.12;
+        letter-spacing: -0.04em;
+      }
+      .hero-copy {
+        margin: 0;
+        max-width: 610px;
+        color: #c4d0df;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+      .search-form {
+        display: flex;
+        gap: 10px;
+        max-width: 660px;
+        margin-top: 25px;
+        position: relative;
+        z-index: 1;
+      }
+      .search-form input {
+        flex: 1;
+        min-width: 0;
+        height: 51px;
+        padding: 0 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        outline: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .search-form input::placeholder {
+        color: #aebdce;
+      }
+      .search-form input:focus {
+        border-color: #75dfd0;
+        box-shadow: 0 0 0 3px rgba(117, 223, 208, 0.15);
+      }
+      .primary-btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 0 20px;
+        min-height: 51px;
+        color: #08222a;
+        background: linear-gradient(135deg, #66e0c7, #79d4ed);
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+          transform 0.15s,
+          opacity 0.15s;
+        white-space: nowrap;
+      }
+      .primary-btn:hover {
+        transform: translateY(-1px);
+      }
+      .primary-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+        transform: none;
+      }
+      .hint {
+        margin: 12px 0 0;
+        color: #aebdce;
+        font-size: 11px;
+      }
+      .status {
+        display: none;
+        margin: 18px 0 0;
+        padding: 13px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status.visible {
+        display: block;
+      }
+      .status.info {
+        color: #1d4d70;
+        background: #e8f4fc;
+        border: 1px solid #cbe6f8;
+      }
+      .status.error {
+        color: #8a2632;
+        background: #fff0f1;
+        border: 1px solid #ffd6da;
+      }
+      .status.success {
+        color: #176447;
+        background: #eaf8f1;
+        border: 1px solid #c9edda;
+      }
+      .section {
+        margin-top: 30px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        margin-bottom: 15px;
+      }
+      .section-kicker {
+        margin: 0 0 5px;
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+      h2 {
+        margin: 0;
+        font-size: 21px;
+        letter-spacing: -0.025em;
+      }
+      .section-desc {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .profile-head {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        min-width: 0;
+      }
+      .avatar {
+        display: none;
+        width: 64px;
+        height: 64px;
+        flex: 0 0 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: var(--shadow);
+        background: #e4e9ef;
+      }
+      .user-tag {
+        display: inline-flex;
+        padding: 5px 10px;
+        margin-top: 7px;
+        border-radius: 20px;
+        color: #2853a5;
+        background: #edf2ff;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .stat-card,
+      .panel {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        box-shadow: var(--shadow);
+      }
+      .stat-card {
+        padding: 19px 20px;
+      }
+      .stat-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+      }
+      .stat-value {
+        margin-top: 7px;
+        font-size: 28px;
+        font-weight: 850;
+        letter-spacing: -0.04em;
+      }
+      .panel {
+        padding: 23px;
+      }
+      .bigfive-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+        gap: 24px;
+        align-items: center;
+      }
+      .score-list {
+        display: grid;
+        gap: 17px;
+      }
+      .score-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .score-top strong {
+        color: #2c60bd;
+        font-variant-numeric: tabular-nums;
+      }
+      .track {
+        height: 8px;
+        background: #edf0f5;
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .track > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #4d77f3, #36c7c5);
+      }
+      .chart-wrap {
+        width: 100%;
+        max-width: 420px;
+        margin: auto;
+        min-height: 270px;
+        display: grid;
+        place-items: center;
+      }
+      .chart-wrap canvas {
+        max-height: 300px;
+      }
+      .notice {
+        margin-top: 18px;
+        padding: 12px 14px;
+        border-radius: 11px;
+        background: #f3f6fb;
+        color: #66748a;
+        font-size: 11px;
+        line-height: 1.55;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 17px 18px;
+        border-radius: 13px;
+        background: linear-gradient(110deg, #f1f5ff, #effbfa);
+      }
+      .summary h3 {
+        margin: 0 0 7px;
+        font-size: 12px;
+      }
+      .summary p {
+        margin: 0;
+        color: #526078;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .commercial-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .info-card {
+        padding: 18px;
+        background: #fbfcfe;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+      .info-label {
+        margin: 0 0 9px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      .info-value {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        font-weight: 650;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .chip {
+        padding: 6px 10px;
+        border: 1px solid #cde9e3;
+        color: #187360;
+        background: #effaf7;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .affinities {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 13px;
+        margin-top: 14px;
+      }
+      .affinity {
+        padding: 17px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+      .rank {
+        color: #8290a3;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .affinity h3 {
+        margin: 8px 0;
+        font-size: 14px;
+      }
+      .affinity p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .videos {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 13px;
+      }
+      .video-card {
+        min-width: 0;
+        overflow: hidden;
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        box-shadow: 0 8px 25px rgba(20, 32, 51, 0.05);
+      }
+      .video-thumb {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        background: #e8edf3;
+      }
+      .video-content {
+        padding: 12px;
+      }
+      .video-number {
+        color: #7d8ba0;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .video-description {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 65px;
+        margin: 8px 0 12px;
+        color: #48566b;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+      .video-link {
+        display: inline-block;
+        color: #3567d8;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .video-link:hover {
+        text-decoration: underline;
+      }
+      .empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+        background: #fff;
+        border: 1px dashed #cbd4e0;
+        border-radius: 14px;
+        font-size: 13px;
+      }
+      .hidden {
+        display: none !important;
+      }
+      /* Big Five: rasgo sin puntaje y citas por rasgo */
+      .score-top .no-score {
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .track.no-score {
+        background: repeating-linear-gradient(
+          45deg,
+          #edf0f5,
+          #edf0f5 6px,
+          #f6f8fb 6px,
+          #f6f8fb 12px
+        );
+      }
+      .evidence {
+        margin-top: 7px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .evidence summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: #3567d8;
+      }
+      .evidence ul {
+        margin: 8px 0 0;
+        padding-left: 16px;
+        display: grid;
+        gap: 6px;
+      }
+      .evidence li {
+        line-height: 1.5;
+        color: #48566b;
+      }
+      .evidence q {
+        font-style: italic;
+      }
+      .chart-empty {
+        margin: 0;
+        text-align: center;
+      }
+      .ai-note {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: #fff4e0;
+        color: #8a5a12;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      /* Métricas por video */
+      .video-date {
+        margin-top: 4px;
+        color: #8290a3;
+        font-size: 10px;
+      }
+      .video-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px 8px;
+        margin: 0 0 12px;
+        padding: 8px 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+      .video-meta div {
+        min-width: 0;
+      }
+      .video-meta span {
+        display: block;
+        color: #8290a3;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .video-meta strong {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      /* Auditoría de audiencia */
+      .audit-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        gap: 24px;
+        align-items: start;
+      }
+      .audit-score {
+        font-size: 34px;
+        font-weight: 850;
+        letter-spacing: -0.04em;
+      }
+      .audit-score.no-score {
+        font-size: 24px;
+        color: var(--muted);
+      }
+      .audit-reason {
+        margin: 8px 0 0;
+        color: #48566b;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .audit-warnings {
+        margin: 14px 0 0;
+        padding-left: 16px;
+        color: #66748a;
+        font-size: 11px;
+        line-height: 1.55;
+        display: grid;
+        gap: 4px;
+      }
+      .digits-wrap {
+        position: relative;
+        min-height: 240px;
+      }
+      footer {
+        margin-top: 34px;
+        padding: 20px 0;
+        text-align: center;
+        color: #8290a2;
+        border-top: 1px solid var(--line);
+        font-size: 10px;
+        line-height: 1.6;
+      }
+      @media (max-width: 900px) {
+        .videos {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .bigfive-layout {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 650px) {
+        .topbar-inner,
+        .page {
+          width: min(100% - 26px, 1180px);
+        }
+        .top-note {
+          display: none;
+        }
+        .page {
+          margin-top: 18px;
+        }
+        .hero {
+          padding: 25px 20px;
+          border-radius: 18px;
+        }
+        .search-form {
+          flex-direction: column;
+        }
+        .search-form .primary-btn {
+          width: 100%;
+        }
+        .stats {
+          gap: 8px;
+        }
+        .stat-card {
+          padding: 14px 11px;
+        }
+        .stat-value {
+          font-size: 21px;
+        }
+        .stat-label {
+          font-size: 9px;
+        }
+        .panel {
+          padding: 17px;
+        }
+        .bigfive-layout,
+        .commercial-grid,
+        .audit-layout {
+          grid-template-columns: 1fr;
+        }
+        .chart-wrap {
+          min-height: 230px;
+        }
+        .affinities {
+          grid-template-columns: 1fr;
+        }
+        .videos {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+        }
+        .section-head {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-mark">M</span><span>MATCH CREADORES</span>
+        </div>
+        <span class="top-note">TikTok Creator Intelligence · UCE</span>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div class="eyebrow">Creator analysis platform</div>
+        <h1>Conoce el potencial de<br />cada creador.</h1>
+        <p class="hero-copy">
+          Analiza un perfil público de TikTok, estima sus rasgos Big Five y
+          descubre qué categorías comerciales podrían conectar con su contenido.
+        </p>
+        <form class="search-form" id="search-form">
+          <input
+            id="username-input"
+            type="text"
+            placeholder="Ingresa el usuario, por ejemplo @danielvalencia365"
+            autocomplete="off"
+            maxlength="25"
+            required
+          />
+          <button class="primary-btn" id="analyze-button" type="submit">
+            Analizar perfil <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <p class="hint">
+          El proceso puede tardar 2–3 minutos. La extracción usa la sesión de
+          TikTok guardada en este equipo, sin abrir ninguna ventana.
+        </p>
+      </section>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <section id="results" class="hidden">
+        <section class="section">
+          <div class="section-head">
+            <div class="profile-head">
+              <img id="profile-image" class="avatar" alt="Foto de perfil" />
+              <div>
+                <p class="section-kicker">Perfil analizado</p>
+                <h2 id="profile-title">Creador de TikTok</h2>
+                <span id="username-tag" class="user-tag">@usuario</span>
+              </div>
+            </div>
+            <span id="videos-counter" class="user-tag"
+              >0 videos analizados</span
+            >
+          </div>
+          <div class="stats" id="stats-container"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Personalidad estimada</p>
+              <h2>Modelo Big Five (OCEAN)</h2>
+              <p class="section-desc">
+                Cinco rasgos estimados a partir de las descripciones de los
+                videos, cada uno respaldado por citas literales.
+              </p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="bigfive-layout">
+              <div id="score-list" class="score-list"></div>
+              <div class="chart-wrap">
+                <canvas
+                  id="bigfive-chart"
+                  aria-label="Gráfico radar de Big Five"
+                ></canvas>
+                <p id="bigfive-chart-empty" class="section-desc chart-empty hidden">
+                  Ningún rasgo tiene evidencia suficiente para mostrarse en el
+                  gráfico.
+                </p>
+              </div>
+            </div>
+            <div class="notice">
+              Importante: cada rasgo se puntúa de 0 a 100 de forma independiente
+              (los cinco no suman 100). Un puntaje solo se muestra si la IA lo
+              respalda con citas literales de al menos {{ min_supporting_videos }} videos distintos; si
+              no, aparece «Evidencia insuficiente». Son estimaciones generadas
+              por IA a partir del texto disponible; no representan percentiles
+              psicométricos validados ni constituyen un diagnóstico psicológico.
+            </div>
+            <div class="summary">
+              <h3>
+                Resumen del estilo del creador<span class="ai-note"
+                  >Texto generado por IA, no verificado</span
+                >
+              </h3>
+              <p id="personality-summary">No disponible.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Brand fit</p>
+              <h2>Perfil comercial</h2>
+              <p class="section-desc">
+                Señales de contenido que pueden orientar una evaluación inicial
+                de colaboración.
+              </p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="commercial-grid">
+              <div class="info-card">
+                <p class="info-label">Tono de comunicación</p>
+                <p id="communication-tone" class="info-value">No disponible</p>
+              </div>
+              <div class="info-card">
+                <p class="info-label">Intereses principales</p>
+                <div id="interest-chips" class="chips">
+                  <span class="section-desc">No disponible</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 20px">
+              <p class="info-label">Categorías de marca con mayor afinidad</p>
+              <div id="affinities" class="affinities"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="audit-section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Autenticidad de audiencia</p>
+              <h2>Auditoría de audiencia (Ley de Benford)</h2>
+              <p class="section-desc">
+                Primer dígito de las vistas, likes, comentarios, compartidos y
+                guardados de los videos, comparado con la Ley de Benford.
+                Indicador estadístico exploratorio.
+              </p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="audit-layout">
+              <div>
+                <p class="info-label">Porcentaje orgánico</p>
+                <div id="audit-score" class="audit-score">—</div>
+                <p id="audit-reason" class="audit-reason"></p>
+                <ul id="audit-warnings" class="audit-warnings"></ul>
+              </div>
+              <div>
+                <p class="info-label">Primer dígito: observado frente a esperado</p>
+                <div class="digits-wrap">
+                  <canvas
+                    id="digits-chart"
+                    aria-label="Gráfico de barras del primer dígito observado frente al esperado por la Ley de Benford"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+            <div id="audit-disclaimer" class="notice"></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Contenido reciente</p>
+              <h2>Últimos videos extraídos</h2>
+              <p class="section-desc">
+                Publicaciones públicas detectadas en el perfil. Selecciona un
+                video para abrirlo en TikTok.
+              </p>
+            </div>
+          </div>
+          <div id="videos-grid" class="videos"></div>
+        </section>
+      </section>
+
+      <footer>
+        Match Creadores · Proyecto académico UCE.<br />Los datos y las
+        estimaciones deben interpretarse con criterio; los resultados dependen
+        del contenido público disponible y de la extracción realizada.
+      </footer>
+    </main>
+
+    <script>
+      const form = document.getElementById("search-form");
+      const usernameInput = document.getElementById("username-input");
+      const analyzeButton = document.getElementById("analyze-button");
+      const statusBox = document.getElementById("status");
+      const results = document.getElementById("results");
+      let bigFiveChart = null;
+      let digitsChart = null;
+
+      // Mínimos de la auditoría, tomados del dominio (organic_score.py) al renderizar la página.
+      const MIN_VALID_VALUES = {{ min_valid_values }};
+      const MIN_ORDERS_SPANNED = {{ min_orders_spanned }};
+      const SESSION_COMMAND = "python -m truematch.interfaces.cli.main session";
+
+      const TRAITS = [
+        ["Apertura", "Apertura"],
+        ["Responsabilidad", "Responsabilidad"],
+        ["Extraversion", "Extraversión"],
+        ["Amabilidad", "Amabilidad"],
+        ["Neuroticismo", "Neuroticismo"],
+      ];
+
+      const VIDEO_METRICS = [
+        ["vistas", "Vistas"],
+        ["me_gusta", "Likes"],
+        ["comentarios", "Coment."],
+        ["compartidos", "Compart."],
+        ["guardados", "Guard."],
+      ];
+
+      function showStatus(message, type = "info") {
+        statusBox.textContent = message;
+        statusBox.className = `status visible ${type}`;
+      }
+
+      function safeHttpUrl(value) {
+        try {
+          const url = new URL(String(value || ""), window.location.href);
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function makeElement(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null)
+          node.textContent = String(text);
+        return node;
+      }
+
+      // Enteros con separador de miles; null/undefined → "—". Los textos de archivos antiguos ("1.2M") se muestran tal cual.
+      function formatNumber(value) {
+        if (value === null || value === undefined || value === "") return "—";
+        return typeof value === "number" ? value.toLocaleString("es-EC") : String(value);
+      }
+
+      function formatDate(value) {
+        const date = value ? new Date(value) : null;
+        return date && !Number.isNaN(date.getTime())
+          ? date.toLocaleDateString("es-EC", { year: "numeric", month: "short", day: "numeric" })
+          : "Fecha no disponible";
+      }
+
+      function formatDecimal(value, digits) {
+        return Number(value).toLocaleString("es-EC", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        });
+      }
+
+      function renderStats(profile) {
+        const container = document.getElementById("stats-container");
+        container.replaceChildren();
+        [
+          ["Siguiendo", profile.siguiendo],
+          ["Seguidores", profile.seguidores],
+          ["Me gusta", profile.me_gusta],
+        ].forEach(([label, value]) => {
+          const card = makeElement("div", "stat-card");
+          card.append(makeElement("div", "stat-label", label));
+          const known = value !== null && value !== undefined && value !== "";
+          card.append(
+            makeElement("div", "stat-value", known ? formatNumber(value) : "No disponible"),
+          );
+          container.append(card);
+        });
+      }
+
+      function renderEvidence(traitEvidence, analyzedVideos, videoLinks) {
+        const details = makeElement("details", "evidence");
+        const quotes = Array.isArray(traitEvidence?.evidencias) ? traitEvidence.evidencias : [];
+        const withEvidence = traitEvidence?.videos_con_evidencia ?? 0;
+        details.append(
+          makeElement(
+            "summary",
+            "",
+            `Citas (${quotes.length}) · evidencia en ${withEvidence} de ${analyzedVideos} videos analizados`,
+          ),
+        );
+        const list = makeElement("ul");
+        if (!quotes.length) {
+          list.append(makeElement("li", "", "La IA no aportó citas verificables para este rasgo."));
+        }
+        quotes.forEach((item) => {
+          const row = makeElement("li");
+          row.append(makeElement("q", "", item.cita));
+          const url = safeHttpUrl(videoLinks.get(String(item.video_id)));
+          if (url) {
+            row.append(" ");
+            const link = makeElement("a", "video-link", "Ver video ↗");
+            link.href = url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            row.append(link);
+          }
+          list.append(row);
+        });
+        details.append(list);
+        return details;
+      }
+
+      function renderBigFive(analysis, evidence, videos) {
+        const scoreList = document.getElementById("score-list");
+        scoreList.replaceChildren();
+        const videoLinks = new Map(
+          (Array.isArray(videos) ? videos : []).map((video) => [String(video.id), video.enlace]),
+        );
+        const analyzedVideos = evidence?.videos_analizados ?? 0;
+        const values = TRAITS.map(([key, label]) => {
+          const raw = analysis?.[key];
+          return {
+            key,
+            label,
+            value: typeof raw === "number" && Number.isFinite(raw) ? raw : null,
+            evidence: evidence?.rasgos?.[key],
+          };
+        });
+
+        values.forEach(({ label, value, evidence: traitEvidence }) => {
+          const row = makeElement("div", "score-row");
+          const top = makeElement("div", "score-top");
+          top.append(makeElement("span", "", label));
+          const track = makeElement("div", value === null ? "track no-score" : "track");
+          if (value === null) {
+            const reason =
+              traitEvidence?.estado === "invalid_score" ? "Puntaje no válido" : "Evidencia insuficiente";
+            top.append(makeElement("strong", "no-score", reason));
+          } else {
+            top.append(makeElement("strong", "", `${value}/100`));
+            const fill = makeElement("span");
+            fill.style.width = `${Math.max(0, Math.min(100, value))}%`;
+            track.append(fill);
+          }
+          row.append(top, track);
+          if (traitEvidence) row.append(renderEvidence(traitEvidence, analyzedVideos, videoLinks));
+          scoreList.append(row);
+        });
+        if (evidence) {
+          const discarded = evidence.citas_descartadas ?? 0;
+          scoreList.append(
+            makeElement(
+              "p",
+              "section-desc",
+              `${analyzedVideos} videos con descripción analizados · ${discarded} citas descartadas por no aparecer literalmente en el video citado.`,
+            ),
+          );
+        }
+
+        if (bigFiveChart) bigFiveChart.destroy();
+        bigFiveChart = null;
+        const canvas = document.getElementById("bigfive-chart");
+        const empty = document.getElementById("bigfive-chart-empty");
+        const anyScore = values.some((item) => item.value !== null);
+        canvas.classList.toggle("hidden", !anyScore);
+        empty.classList.toggle("hidden", anyScore);
+        if (window.Chart && anyScore) {
+          bigFiveChart = new Chart(canvas, {
+            type: "radar",
+            data: {
+              labels: values.map((item) => item.label),
+              datasets: [
+                {
+                  label: "Puntaje por rasgo",
+                  // null: el rasgo sin evidencia suficiente no se dibuja.
+                  data: values.map((item) => item.value),
+                  spanGaps: false,
+                  backgroundColor: "rgba(75, 117, 242, 0.17)",
+                  borderColor: "#4b75f2",
+                  pointBackgroundColor: "#36c6c8",
+                  pointBorderColor: "#ffffff",
+                  pointRadius: 4,
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => `${context.formattedValue}/100`,
+                  },
+                },
+              },
+              scales: {
+                r: {
+                  min: 0,
+                  max: 100,
+                  ticks: { display: false, stepSize: 20 },
+                  grid: { color: "#e8edf4" },
+                  angleLines: { color: "#e8edf4" },
+                  pointLabels: {
+                    color: "#59677c",
+                    font: { size: 11, weight: "600" },
+                  },
+                },
+              },
+            },
+          });
+        }
+        document.getElementById("personality-summary").textContent =
+          analysis?.resumen || "No se generó un resumen.";
+      }
+
+      function renderCommercial(commercial) {
+        document.getElementById("communication-tone").textContent =
+          commercial?.tono_comunicacion || "No disponible";
+        const chips = document.getElementById("interest-chips");
+        chips.replaceChildren();
+        const interests = Array.isArray(commercial?.intereses)
+          ? commercial.intereses
+          : [];
+        if (interests.length)
+          interests.forEach((item) =>
+            chips.append(makeElement("span", "chip", item)),
+          );
+        else chips.append(makeElement("span", "section-desc", "No disponible"));
+
+        const affinities = document.getElementById("affinities");
+        affinities.replaceChildren();
+        const items = Array.isArray(commercial?.afinidad_marcas)
+          ? commercial.afinidad_marcas
+          : [];
+        if (!items.length) {
+          affinities.append(
+            makeElement(
+              "p",
+              "section-desc",
+              "No hay categorías de afinidad disponibles.",
+            ),
+          );
+          return;
+        }
+        items.slice(0, 3).forEach((item, index) => {
+          const card = makeElement("article", "affinity");
+          card.append(makeElement("div", "rank", `Afinidad #${index + 1}`));
+          card.append(makeElement("h3", "", item.categoria || "Categoría"));
+          card.append(
+            makeElement("p", "", item.motivo || "Sin explicación disponible."),
+          );
+          affinities.append(card);
+        });
+      }
+
+      function auditReason(audit) {
+        const valid = audit.tamano_muestra ?? 0;
+        const orders = audit.ordenes_de_magnitud;
+        if (typeof audit.puntaje_organico === "number") {
+          return `Calculado con ${valid} valores válidos (MAD ${formatDecimal(audit.mad, 4)}, ${orders} órdenes de magnitud).`;
+        }
+        const reasons = [];
+        if (valid < MIN_VALID_VALUES)
+          reasons.push(`hay ${valid} valores válidos y se necesitan al menos ${MIN_VALID_VALUES}`);
+        if (orders === null || orders === undefined || orders < MIN_ORDERS_SPANNED)
+          reasons.push(
+            `los valores abarcan ${orders ?? 0} órdenes de magnitud y se necesitan al menos ${MIN_ORDERS_SPANNED}`,
+          );
+        const excluded = audit.excluidos || {};
+        const zeros = excluded.zero ? ` Se excluyeron ${excluded.zero} métricas en cero.` : "";
+        const text = reasons.join(" y ") || "la muestra no cumple los mínimos";
+        return `${text.charAt(0).toUpperCase()}${text.slice(1)}.${zeros}`;
+      }
+
+      function renderAudit(audit) {
+        const section = document.getElementById("audit-section");
+        if (digitsChart) digitsChart.destroy();
+        digitsChart = null;
+        if (!audit) {
+          section.classList.add("hidden");
+          return;
+        }
+        section.classList.remove("hidden");
+
+        const score = document.getElementById("audit-score");
+        const hasScore = typeof audit.puntaje_organico === "number";
+        score.textContent = hasScore ? `${audit.puntaje_organico}/100` : "Sin puntaje";
+        score.classList.toggle("no-score", !hasScore);
+        document.getElementById("audit-reason").textContent = auditReason(audit);
+
+        const warnings = document.getElementById("audit-warnings");
+        warnings.replaceChildren();
+        (Array.isArray(audit.advertencias) ? audit.advertencias : []).forEach((text) =>
+          warnings.append(makeElement("li", "", text)),
+        );
+        document.getElementById("audit-disclaimer").textContent = audit.disclaimer || "";
+
+        const rows = Array.isArray(audit.distribucion) ? audit.distribucion : [];
+        if (window.Chart && rows.length) {
+          digitsChart = new Chart(document.getElementById("digits-chart"), {
+            type: "bar",
+            data: {
+              labels: rows.map((row) => String(row.digito)),
+              datasets: [
+                {
+                  type: "bar",
+                  label: "Observado (%)",
+                  data: rows.map((row) => row.observado_porcentaje),
+                  backgroundColor: "rgba(75, 117, 242, 0.55)",
+                  borderRadius: 4,
+                },
+                {
+                  type: "line",
+                  label: "Esperado por Benford (%)",
+                  data: rows.map((row) => row.esperado_porcentaje),
+                  borderColor: "#36c6c8",
+                  backgroundColor: "#36c6c8",
+                  pointRadius: 3,
+                  borderWidth: 2,
+                  tension: 0.3,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: {
+                  callbacks: {
+                    label: (context) =>
+                      `${context.dataset.label}: ${context.raw === null ? "—" : formatDecimal(context.raw, 1)}`,
+                  },
+                },
+              },
+              scales: {
+                x: { title: { display: true, text: "Primer dígito" }, grid: { display: false } },
+                y: { beginAtZero: true, title: { display: true, text: "%" }, grid: { color: "#e8edf4" } },
+              },
+            },
+          });
+        }
+      }
+
+      function renderVideos(videos) {
+        const grid = document.getElementById("videos-grid");
+        grid.replaceChildren();
+        if (!Array.isArray(videos) || videos.length === 0) {
+          grid.className = "empty";
+          grid.textContent = "No se encontraron videos públicos para mostrar.";
+          return;
+        }
+        grid.className = "videos";
+        videos.forEach((video, index) => {
+          const card = makeElement("article", "video-card");
+          const thumbnailUrl = safeHttpUrl(video.miniatura);
+          if (thumbnailUrl) {
+            const image = makeElement("img", "video-thumb");
+            image.src = thumbnailUrl;
+            image.alt = `Miniatura del video ${index + 1}`;
+            image.loading = "lazy";
+            image.onerror = () => {
+              image.style.display = "none";
+            };
+            card.append(image);
+          } else {
+            const placeholder = makeElement("div", "video-thumb");
+            placeholder.style.display = "grid";
+            placeholder.style.placeItems = "center";
+            placeholder.textContent = "Sin miniatura";
+            card.append(placeholder);
+          }
+          const content = makeElement("div", "video-content");
+          content.append(
+            makeElement(
+              "div",
+              "video-number",
+              `Publicación #${video.posicion || index + 1}`,
+            ),
+          );
+          content.append(makeElement("div", "video-date", formatDate(video.fecha_publicacion)));
+          content.append(
+            makeElement(
+              "p",
+              "video-description",
+              video.descripcion || "Sin descripción disponible.",
+            ),
+          );
+          const meta = makeElement("div", "video-meta");
+          VIDEO_METRICS.forEach(([key, label]) => {
+            const cell = makeElement("div");
+            cell.append(makeElement("span", "", label));
+            cell.append(makeElement("strong", "", formatNumber(video[key])));
+            meta.append(cell);
+          });
+          content.append(meta);
+          const linkUrl = safeHttpUrl(video.enlace);
+          if (linkUrl) {
+            const link = makeElement("a", "video-link", "Ver video original ↗");
+            link.href = linkUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            content.append(link);
+          }
+          card.append(content);
+          grid.append(card);
+        });
+      }
+
+      function renderResults(data) {
+        const profile = data.perfil || {};
+        const profileImage = document.getElementById("profile-image");
+        const imageUrl = safeHttpUrl(profile.foto_perfil);
+        if (imageUrl) {
+          profileImage.src = imageUrl;
+          profileImage.style.display = "block";
+        } else {
+          profileImage.removeAttribute("src");
+          profileImage.style.display = "none";
+        }
+        document.getElementById("profile-title").textContent =
+          `@${data.usuario || "usuario"}`;
+        document.getElementById("username-tag").textContent =
+          `TikTok · @${data.usuario || "usuario"}`;
+        const videos = Array.isArray(data.videos_recientes) ? data.videos_recientes : [];
+        document.getElementById("videos-counter").textContent =
+          `${videos.length} videos extraídos`;
+        renderStats(profile);
+        // Mostrar la sección antes de dibujar los gráficos para que Chart.js mida bien el espacio.
+        results.classList.remove("hidden");
+        renderBigFive(data.analisis_bigfive || {}, data.analisis_bigfive_evidencia, videos);
+        renderCommercial(data.perfil_comercial || {});
+        renderAudit(data.auditoria_audiencia);
+        renderVideos(videos);
+      }
+
+      // Deja ?usuario=<usuario> en la barra de direcciones para recargar el resultado guardado.
+      function rememberUser(username) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("usuario", username);
+        window.history.replaceState(null, "", url);
+      }
+
+      async function loadSaved(username) {
+        usernameInput.value = `@${username}`;
+        showStatus(`Cargando el resultado guardado de @${username}…`, "info");
+        try {
+          const response = await fetch(`/api/datos/${encodeURIComponent(username)}`);
+          const result = await response.json();
+          if (!response.ok || !result.ok)
+            throw new Error(result.error || "No fue posible cargar el resultado guardado.");
+          renderResults(result.datos);
+          showStatus(
+            `Resultado guardado de @${result.datos.usuario}. No se consultó TikTok ni Groq; pulsa «Analizar perfil» para actualizarlo.`,
+            "success",
+          );
+        } catch (error) {
+          showStatus(error.message || "Ocurrió un error al conectar con el servidor.", "error");
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = usernameInput.value.trim().replace(/^@/, "");
+        if (!username) {
+          showStatus("Escribe un usuario de TikTok para comenzar.", "error");
+          return;
+        }
+
+        analyzeButton.disabled = true;
+        analyzeButton.textContent = "Analizando…";
+        results.classList.add("hidden");
+        showStatus(
+          `Extrayendo el perfil y sus videos con la sesión de TikTok guardada en este equipo (no se abre ninguna ventana) y enviando las descripciones a Groq. Puede tardar 2–3 minutos. Si TikTok pide verificación o inicio de sesión, ejecuta en la carpeta backend: ${SESSION_COMMAND}`,
+          "info",
+        );
+
+        try {
+          const response = await fetch("/api/analizar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username }),
+          });
+          const result = await response.json();
+          if (!response.ok || !result.ok)
+            throw new Error(
+              result.error || "No fue posible analizar el perfil.",
+            );
+          renderResults(result.datos);
+          rememberUser(result.datos.usuario);
+          showStatus(
+            `Análisis completado para @${result.datos.usuario}. Se muestran los datos obtenidos.`,
+            "success",
+          );
+        } catch (error) {
+          showStatus(
+            error.message || "Ocurrió un error al conectar con el servidor.",
+            "error",
+          );
+        } finally {
+          analyzeButton.disabled = false;
+          analyzeButton.innerHTML =
+            'Analizar perfil <span aria-hidden="true">→</span>';
+        }
+      });
+
+      const savedUser = new URLSearchParams(window.location.search).get("usuario");
+      if (savedUser) loadSaved(savedUser.trim().replace(/^@/, ""));
+    </script>
+  </body>
+</html>
