@@ -29,7 +29,7 @@ app = Flask(__name__, template_folder="templates")
 app.config["JSON_AS_ASCII"] = False
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024  # El endpoint solo recibe un username.
 
-# El scraper utiliza una sesión persistente de Chromium en perfil_tiktok/.
+# El motor usa una única sesión persistente de Chromium (.truematch/chromium).
 # No se deben ejecutar dos extracciones simultáneamente sobre esa misma sesión.
 SCRAPER_LOCK = threading.Lock()
 USERNAME_RE = re.compile(r"^[A-Za-z0-9._]{2,24}$")

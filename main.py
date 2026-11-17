@@ -5,7 +5,6 @@ Uso:
     python main.py                      # pregunta el usuario
     python main.py danielvalencia365    # usuario por argumento
     python main.py usuario --sin-analisis   # solo extrae, no analiza
-    python main.py usuario --motor legado   # usa el scraper anterior (temporal)
 """
 import argparse
 import json
@@ -13,14 +12,6 @@ import logging
 import os
 from pathlib import Path
 import sys
-import time
-
-from playwright.sync_api import sync_playwright
-
-PLACEHOLDER_FOTO = "https://via.placeholder.com/150?text=Sin+Foto"
-PLACEHOLDER_VIDEO = "https://via.placeholder.com/300x400?text=Video"
-SIN_DESCRIPCION = "Sin descripción disponible"
-MAX_VIDEOS = 10
 
 # El paquete truematch vive en backend/. Si no se instaló con `pip install -e backend`, se añade a la ruta.
 BACKEND_DIR = Path(__file__).resolve().parent / "backend"
@@ -43,7 +34,7 @@ def analizar_creador(username, analizador=None):
     analizador) → datos_<usuario>.json. Devuelve el AnalysisResult o None si falla la extracción."""
     print(f"\nIniciando extracción para: @{username.strip().lstrip('@')} (motor SCRAPINGTIKTOK, hasta 30 videos)")
     try:
-        # Import diferido: --motor legado sigue funcionando aunque falte alguna dependencia nueva.
+        # Import diferido: --help funciona aunque falte alguna dependencia (Playwright, filelock).
         from truematch.application.use_cases.analyze_creator import AnalyzeCreator
         from truematch.domain.creator_profiling.username import Username
         from truematch.infrastructure.persistence.legacy_json_repository import LegacyJsonCreatorRepository
@@ -52,7 +43,7 @@ def analizar_creador(username, analizador=None):
         caso_de_uso = AnalyzeCreator(TikTokCreatorSource(), LegacyJsonCreatorRepository("."), analizador)
         resultado = caso_de_uso.execute(Username.parse(username))
     except Exception as e:
-        print("\nError: no se pudo extraer el perfil con el motor nuevo.")
+        print("\nError: no se pudo extraer el perfil.")
         print(f"Detalle: {e}")
         print("Si TikTok pide verificación o inicio de sesión, ejecuta desde backend/: "
               "python -m truematch.interfaces.cli.main session")
@@ -69,112 +60,8 @@ def scrape_tiktok_profile(username):
     return resultado.location if resultado else None
 
 
-def scrape_tiktok_profile_legado(username):
-    """Scraper anterior (sin cambios). Extrae el perfil y guarda datos_<usuario>.json.
-    Devuelve el nombre del archivo o None si falla."""
-    print(f"\nIniciando extracción para: @{username}")
-
-    datos_descarga = {"usuario": username, "perfil": {}, "videos_recientes": []}
-    nombre_archivo = None
-
-    with sync_playwright() as p:
-        # Carpeta local que guarda cookies/sesión para reducir Captchas
-        context = p.chromium.launch_persistent_context(
-            user_data_dir="perfil_tiktok",
-            headless=False,
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            ),
-        )
-        page = context.pages[0]
-
-        try:
-            page.goto(f"https://www.tiktok.com/@{username}", wait_until="domcontentloaded", timeout=60000)
-            print("Verificando conexión...")
-            time.sleep(4)
-
-            print("Extrayendo estadísticas principales y foto de perfil...")
-            # Espera hasta 60 s por si aparece un Captcha inicial
-            page.wait_for_selector('strong[title="Seguidores"]', timeout=60000)
-
-            siguiendo = page.locator('strong[title="Siguiendo"]').text_content()
-            seguidores = page.locator('strong[title="Seguidores"]').text_content()
-            likes = page.locator('strong[title="Me gusta"]').text_content()
-
-            try:
-                foto_perfil = page.locator('img[class*="Avatar"]').first.get_attribute("src", timeout=5000)
-            except Exception:
-                foto_perfil = PLACEHOLDER_FOTO
-
-            datos_descarga["perfil"] = {
-                "foto_perfil": foto_perfil,
-                "siguiendo": siguiendo,
-                "seguidores": seguidores,
-                "me_gusta": likes,
-            }
-
-            print("Haciendo scroll simulado para cargar las publicaciones...")
-            for _ in range(4):
-                page.mouse.wheel(0, 800)
-                time.sleep(1.5)
-
-            print("Capturando los enlaces y descripciones de los videos...")
-            page.wait_for_selector('a[href*="/video/"]', timeout=60000)
-            videos_links = page.locator('a[href*="/video/"]')
-
-            videos_extraidos = {}  # evita duplicados
-            for i in range(videos_links.count()):
-                elemento = videos_links.nth(i)
-                href = elemento.get_attribute("href")
-                if not href or "/video/" not in href:
-                    continue
-                if href.startswith("/"):
-                    href = "https://www.tiktok.com" + href
-                if href in videos_extraidos:
-                    continue
-
-                try:
-                    img = elemento.locator("img").first
-                    miniatura = img.get_attribute("src", timeout=2000)
-                    descripcion = img.get_attribute("alt", timeout=2000)
-                except Exception:
-                    miniatura, descripcion = PLACEHOLDER_VIDEO, SIN_DESCRIPCION
-
-                videos_extraidos[href] = {
-                    "miniatura": miniatura,
-                    "descripcion": descripcion or SIN_DESCRIPCION,
-                }
-
-            for i, (enlace, v) in enumerate(list(videos_extraidos.items())[:MAX_VIDEOS]):
-                datos_descarga["videos_recientes"].append({
-                    "posicion": i + 1,
-                    "enlace": enlace,
-                    "miniatura": v["miniatura"],
-                    "descripcion": v["descripcion"],
-                    "estado": "Extraído exitosamente",
-                })
-
-            nombre_archivo = f"datos_{username}.json"
-            with open(nombre_archivo, "w", encoding="utf-8") as f:
-                json.dump(datos_descarga, f, ensure_ascii=False, indent=4)
-
-            print(f"\n¡ÉXITO! Se extrajeron {len(datos_descarga['videos_recientes'])} videos. Archivo: {nombre_archivo}")
-
-        except Exception as e:
-            print("\nError: TikTok bloqueó la conexión o saltó un Captcha. "
-                  "Borra la carpeta 'perfil_tiktok', espera unos minutos y reintenta.")
-            print(f"Detalle técnico: {e}")
-            nombre_archivo = None
-
-        finally:
-            context.close()
-
-    return nombre_archivo
-
-
 def _numero(valor):
-    """Entero con separador de miles; '—' si se desconoce. Los textos del scraper legado se muestran tal cual."""
+    """Entero con separador de miles; '—' si se desconoce. Los textos de archivos antiguos ("1.2M") se muestran tal cual."""
     if valor is None:
         return "—"
     if isinstance(valor, int) and not isinstance(valor, bool):
@@ -219,42 +106,23 @@ def main():
     parser = argparse.ArgumentParser(description="Extrae datos de TikTok y analiza Big Five.")
     parser.add_argument("usuario", nargs="?", help="Username de TikTok (sin @)")
     parser.add_argument("--sin-analisis", action="store_true", help="Solo extraer, sin análisis Big Five")
-    parser.add_argument("--motor", choices=["nuevo", "legado"], default="nuevo",
-                        help="nuevo: SCRAPINGTIKTOK (por defecto); legado: scraper anterior")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     usuario = args.usuario or input("Ingresa el username de TikTok (sin el @): ")
     usuario = usuario.strip().lstrip("@")
 
-    if args.motor == "legado":
-        archivo = scrape_tiktok_profile_legado(usuario)
-        if not archivo:
-            return
-        imprimir_resumen(archivo)
-        if not args.sin_analisis:
-            # Se importa aquí para no exigir GROQ_API_KEY si solo se quiere extraer
-            from analisis_bigfive import analizar_perfil
-            analizar_perfil(archivo)
-        from truematch.application.use_cases.audit_audience import AuditAudience
-        from truematch.domain.creator_profiling.username import Username
-        from truematch.infrastructure.persistence.legacy_json_repository import LegacyJsonCreatorRepository
-        auditoria = AuditAudience(LegacyJsonCreatorRepository(".")).execute(Username.parse(usuario))
-    else:
-        analizador = None if args.sin_analisis else _analizador_groq()
-        resultado = analizar_creador(usuario, analizador)
-        if not resultado:
-            return
-        imprimir_resumen(resultado.location)
-        from truematch.interfaces.cli.formatting import personality_line
-        if resultado.personality:
-            print(f"\n{personality_line(resultado.personality)}")
-        elif resultado.personality_error:
-            print(f"\nAnálisis de personalidad no completado: {resultado.personality_error}")
-        auditoria = resultado.audit
-
-    from truematch.interfaces.cli.formatting import audit_line
-    print(f"\n{audit_line(auditoria)}")
+    analizador = None if args.sin_analisis else _analizador_groq()
+    resultado = analizar_creador(usuario, analizador)
+    if not resultado:
+        return
+    imprimir_resumen(resultado.location)
+    from truematch.interfaces.cli.formatting import audit_line, personality_line
+    if resultado.personality:
+        print(f"\n{personality_line(resultado.personality)}")
+    elif resultado.personality_error:
+        print(f"\nAnálisis de personalidad no completado: {resultado.personality_error}")
+    print(f"\n{audit_line(resultado.audit)}")
 
 
 if __name__ == "__main__":
