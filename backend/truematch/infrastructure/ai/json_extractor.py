@@ -1,4 +1,4 @@
-"""Extrae el objeto JSON de la respuesta del modelo (antes extraer_json en analisis_bigfive.py, sin cambios)."""
+"""Extrae el objeto JSON de la respuesta del modelo."""
 import json
 import re
 

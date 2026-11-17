@@ -1,6 +1,6 @@
 """Repositorio JSON en el formato heredado datos_<usuario>.json.
 
-Mantiene las claves que leen analisis_bigfive.py y la web (usuario, perfil.*, videos_recientes[].*) y añade,
+Mantiene las claves que lee la web (usuario, perfil.*, videos_recientes[].*) y añade,
 por video, id, fecha_publicacion y las cinco métricas. Los contadores son enteros exactos o null (desconocido),
 nunca textos abreviados como "1.2M". Las secciones de resultados son analisis_bigfive,
 analisis_bigfive_evidencia, perfil_comercial y auditoria_audiencia.
@@ -110,6 +110,18 @@ def personality_sections(analysis: PersonalityAnalysis):
     return bigfive, evidence, commercial
 
 
+def legacy_document(creator: Creator, audit: AudienceAudit | None = None,
+                    personality: PersonalityAnalysis | None = None):
+    """El documento completo de datos_<usuario>.json (lo que escribe save y lo que recibe la web)."""
+    data = to_legacy_dict(creator)
+    if personality is not None:
+        data["analisis_bigfive"], data["analisis_bigfive_evidencia"], data["perfil_comercial"] = \
+            personality_sections(personality)
+    if audit is not None:
+        data["auditoria_audiencia"] = audit_section(audit)
+    return data
+
+
 def _count(value):
     """Solo enteros exactos; los textos del scraper legado ("1.2M") y lo demás quedan como desconocidos."""
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
@@ -179,22 +191,26 @@ class LegacyJsonCreatorRepository(CreatorRepository):
     def save(self, creator: Creator, audit: AudienceAudit | None = None,
              personality: PersonalityAnalysis | None = None):
         """Escribe datos_<usuario>.json completo (reemplaza el anterior) y devuelve su ruta."""
-        data = to_legacy_dict(creator)
-        if personality is not None:
-            data["analisis_bigfive"], data["analisis_bigfive_evidencia"], data["perfil_comercial"] = \
-                personality_sections(personality)
-        if audit is not None:
-            data["auditoria_audiencia"] = audit_section(audit)
-        return self._write(self.path_for(creator.username), data)
+        return self._write(self.path_for(creator.username), legacy_document(creator, audit, personality))
 
     def load(self, username: Username) -> Creator:
         with open(self.path_for(username), "r", encoding="utf-8") as stream:
             return from_legacy_dict(json.load(stream), username)
 
-    def save_audit(self, username: Username, audit: AudienceAudit):
-        """Añade o reemplaza auditoria_audiencia sin tocar el resto del archivo."""
+    def _update(self, username: Username, sections):
+        """Añade o reemplaza las claves indicadas sin tocar el resto del archivo."""
         path = self.path_for(username)
         with open(path, "r", encoding="utf-8") as stream:
             data = json.load(stream)
-        data["auditoria_audiencia"] = audit_section(audit)
+        data.update(sections)
         return self._write(path, data)
+
+    def save_audit(self, username: Username, audit: AudienceAudit):
+        """Añade o reemplaza auditoria_audiencia sin tocar el resto del archivo."""
+        return self._update(username, {"auditoria_audiencia": audit_section(audit)})
+
+    def save_personality(self, username: Username, personality: PersonalityAnalysis):
+        """Añade o reemplaza analisis_bigfive, analisis_bigfive_evidencia y perfil_comercial."""
+        bigfive, evidence, commercial = personality_sections(personality)
+        return self._update(username, {"analisis_bigfive": bigfive, "analisis_bigfive_evidencia": evidence,
+                                       "perfil_comercial": commercial})

@@ -2,18 +2,19 @@
 # archivo backend/session.py (ver docs/plan-backend.md, paso 7). Cambios respecto del original:
 #   - fcntl.flock -> filelock.FileLock, para que el bloqueo funcione también en Windows.
 #   - os.fchmod -> Path.chmod (os.fchmod no existe en Windows).
-#   - Carpeta privada: <raíz del repositorio>/.truematch (antes .media-scraper).
+#   - Carpeta privada: la de truematch.infrastructure.config (por defecto <raíz>/.truematch; antes .media-scraper).
 """Perfil local dedicado de Chromium con un bloqueo entre procesos (Linux, macOS y Windows)."""
 
 from contextlib import contextmanager
 import os
-from pathlib import Path
 
 from filelock import FileLock, Timeout
 from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
-# backend/truematch/infrastructure/tiktok/session.py -> parents[4] es la raíz del repositorio.
-PRIVATE_DIR = Path(__file__).resolve().parents[4] / ".truematch"
+from truematch.infrastructure.config import load_settings
+
+# Se lee una vez al importar; los tests lo reemplazan con patch.object(session, 'PRIVATE_DIR', ...).
+PRIVATE_DIR = load_settings().private_dir
 
 
 class SessionBusyError(RuntimeError):
