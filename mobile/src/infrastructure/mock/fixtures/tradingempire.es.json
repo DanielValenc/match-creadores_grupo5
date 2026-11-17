@@ -463,7 +463,7 @@
         ]
     },
     "auditoria_audiencia": {
-        "puntaje_organico": 39,
+        "puntaje_organico": 100,
         "metricas": [
             "vistas",
             "me_gusta",
