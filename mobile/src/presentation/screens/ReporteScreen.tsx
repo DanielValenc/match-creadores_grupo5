@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, StatusBar, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MessageCircle } from 'lucide-react-native';
+import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
 import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme';
 import { useCreatorAnalysis } from '../hooks/useCreatorAnalysis';
@@ -13,6 +13,8 @@ import {
 
 type Props = { onNext: () => void };
 
+const AUDIT_SHORT_NOTE = 'Indicador estadístico. No prueba fraude ni autenticidad.';
+
 function textoMuestra(audit: AudienceAudit): string {
   if (audit.sampleSize === null) return 'No se pudo determinar el tamaño de la muestra.';
   const total = audit.totalRecords !== null ? ` de ${audit.totalRecords} registros` : '';
@@ -21,6 +23,7 @@ function textoMuestra(audit: AudienceAudit): string {
 
 export default function ReporteScreen({ onNext }: Props) {
   const { creator } = useCreatorAnalysis();
+  const [detallesAbiertos, setDetallesAbiertos] = useState(false);
 
   if (!creator) {
     return (
@@ -33,6 +36,7 @@ export default function ReporteScreen({ onNext }: Props) {
   }
 
   const audit = creator.audit;
+  const score = audit?.organicScore ?? null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -74,29 +78,54 @@ export default function ReporteScreen({ onNext }: Props) {
 
         <View style={[styles.block, { gap: 16 }]}>
           <Text style={styles.blockTitle}>Auditoría de audiencia</Text>
-          {!audit ? (
-            <Text style={styles.body}>El análisis no incluye la auditoría de audiencia.</Text>
-          ) : (
+          <View style={{ gap: 4 }}>
+            {score !== null ? (
+              <Text style={styles.organic}>Puntaje orgánico: {Math.round(score)}/100</Text>
+            ) : (
+              <Text style={styles.noScore}>Sin puntaje</Text>
+            )}
+            <Text style={styles.note}>{AUDIT_SHORT_NOTE}</Text>
+          </View>
+          <Pressable
+            style={styles.toggle}
+            onPress={() => setDetallesAbiertos((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: detallesAbiertos }}
+          >
+            <Text style={styles.metric}>Ver detalles técnicos</Text>
+            {detallesAbiertos ? (
+              <ChevronUp size={18} color={colors.textSoft} />
+            ) : (
+              <ChevronDown size={18} color={colors.textSoft} />
+            )}
+          </Pressable>
+          {detallesAbiertos && (
             <>
-              <View style={{ gap: 4 }}>
-                <Text style={styles.metric}>Tamaño de la muestra</Text>
-                <Text style={styles.body}>{textoMuestra(audit)}</Text>
-              </View>
-              <View style={{ gap: 4 }}>
-                <Text style={styles.metric}>Advertencias</Text>
-                {audit.warnings.length === 0 ? (
-                  <Text style={styles.body}>Sin advertencias.</Text>
-                ) : (
-                  audit.warnings.map((w, i) => (
-                    <Text key={i} style={styles.body}>
-                      • {w}
-                    </Text>
-                  ))
-                )}
-              </View>
+              {!audit ? (
+                <Text style={styles.body}>El análisis no incluye la auditoría de audiencia.</Text>
+              ) : (
+                <>
+                  <View style={{ gap: 4 }}>
+                    <Text style={styles.metric}>Tamaño de la muestra</Text>
+                    <Text style={styles.body}>{textoMuestra(audit)}</Text>
+                  </View>
+                  <View style={{ gap: 4 }}>
+                    <Text style={styles.metric}>Advertencias</Text>
+                    {audit.warnings.length === 0 ? (
+                      <Text style={styles.body}>Sin advertencias.</Text>
+                    ) : (
+                      audit.warnings.map((w, i) => (
+                        <Text key={i} style={styles.body}>
+                          • {w}
+                        </Text>
+                      ))
+                    )}
+                  </View>
+                </>
+              )}
+              <Text style={styles.note}>{audit?.disclaimer ?? DEFAULT_AUDIT_DISCLAIMER}</Text>
             </>
           )}
-          <Text style={styles.note}>{audit?.disclaimer ?? DEFAULT_AUDIT_DISCLAIMER}</Text>
         </View>
 
         <PrimaryButton label="Ver Sectores Compatibles" height={51} onPress={onNext} />
@@ -137,6 +166,9 @@ const styles = StyleSheet.create({
   highlightTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   highlightBody: { fontSize: 14, lineHeight: 20, color: colors.textSoft },
   blockTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  organic: { fontSize: 13, fontWeight: '600', color: colors.green },
+  noScore: { fontSize: 13, fontWeight: '600', color: colors.textGray },
+  toggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metric: { fontSize: 14, fontWeight: '600', color: colors.textSoft },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {

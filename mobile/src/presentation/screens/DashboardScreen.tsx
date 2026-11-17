@@ -7,14 +7,13 @@ import PrimaryButton from '../components/PrimaryButton';
 import { colors } from '../theme';
 import { useCreatorAnalysis } from '../hooks/useCreatorAnalysis';
 import type { AudienceAudit } from '../../domain/audience-audit/AudienceAudit';
-import {
-  DEFAULT_AUDIT_DISCLAIMER,
-  MIN_AUDIT_SAMPLE_SIZE,
-} from '../../domain/audience-audit/AudienceAudit';
+import { MIN_AUDIT_SAMPLE_SIZE } from '../../domain/audience-audit/AudienceAudit';
 import type { BigFiveTrait } from '../../domain/creator-profiling/BigFiveProfile';
 import { BIG_FIVE_TRAITS } from '../../domain/creator-profiling/BigFiveProfile';
 
 type Props = { onNext: () => void };
+
+const AUDIT_SHORT_NOTE = 'Indicador estadístico. No prueba fraude ni autenticidad.';
 
 const TRAIT_LABELS: Record<BigFiveTrait, string> = {
   openness: 'Apertura',
@@ -198,7 +197,7 @@ export default function DashboardScreen({ onNext }: Props) {
               <Text style={styles.axisText}>% por primer dígito</Text>
             </View>
           )}
-          <Text style={styles.note}>{audit?.disclaimer ?? DEFAULT_AUDIT_DISCLAIMER}</Text>
+          <Text style={styles.note}>{AUDIT_SHORT_NOTE}</Text>
         </View>
 
         <View style={styles.card}>
