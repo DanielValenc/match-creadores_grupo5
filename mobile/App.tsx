@@ -10,7 +10,7 @@ import DashboardScreen from "./src/screens/DashboardScreen";
 import ReporteScreen from "./src/screens/ReporteScreen";
 import SectoresCompatiblesScreen from "./src/screens/SectoresCompatiblesScreen";
 import PropuestaScreen from "./src/screens/PropuestaScreen";
-import type { Documento } from "./src/services/api";
+import type { Documento } from "./src/api";
 
 export type RootStackParamList = {
   Front: undefined;
@@ -25,7 +25,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [usuario, setUsuario] = useState("");
+  const [usuario, setUsuario] = useState("danielvalencia365");
   const [datos, setDatos] = useState<Documento | null>(null);
 
   return (
@@ -44,9 +44,8 @@ export default function App() {
           <Stack.Screen name="Onboarding">
             {({ navigation }) => (
               <OnboardingScreen
-                onSubmit={(username) => {
-                  setUsuario(username);
-                  setDatos(null);
+                onSubmit={(u) => {
+                  setUsuario(u);
                   navigation.navigate("Loading");
                 }}
               />
@@ -57,8 +56,8 @@ export default function App() {
             {({ navigation }) => (
               <LoadingScreen
                 usuario={usuario}
-                onDone={(documento) => {
-                  setDatos(documento);
+                onDone={(d) => {
+                  setDatos(d);
                   navigation.replace("Dashboard");
                 }}
                 onBack={() => navigation.goBack()}
@@ -69,7 +68,13 @@ export default function App() {
           <Stack.Screen name="Dashboard">
             {({ navigation }) => (
               <DashboardScreen
-                datos={datos}
+                bigFive={datos?.analisis_bigfive}
+                resumen={datos?.analisis_bigfive?.resumen}
+                puntajeOrganico={
+                  datos
+                    ? (datos.auditoria_audiencia?.puntaje_organico ?? null)
+                    : undefined
+                }
                 onNext={() => navigation.navigate("Reporte")}
               />
             )}
@@ -77,17 +82,13 @@ export default function App() {
 
           <Stack.Screen name="Reporte">
             {({ navigation }) => (
-              <ReporteScreen
-                auditoria={datos?.auditoria_audiencia}
-                onNext={() => navigation.navigate("Sectores")}
-              />
+              <ReporteScreen onNext={() => navigation.navigate("Sectores")} />
             )}
           </Stack.Screen>
 
           <Stack.Screen name="Sectores">
             {({ navigation }) => (
               <SectoresCompatiblesScreen
-                perfilComercial={datos?.perfil_comercial}
                 onContact={() => navigation.navigate("Propuesta")}
                 onCancel={() => navigation.goBack()}
               />
@@ -98,13 +99,12 @@ export default function App() {
             {({ navigation }) => (
               <PropuestaScreen
                 usuario={usuario}
-                onHome={() => {
-                  setDatos(null);
+                onHome={() =>
                   navigation.reset({
                     index: 0,
                     routes: [{ name: "Onboarding" }],
-                  });
-                }}
+                  })
+                }
               />
             )}
           </Stack.Screen>

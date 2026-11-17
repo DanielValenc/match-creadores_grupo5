@@ -110,6 +110,21 @@ def personality_sections(analysis: PersonalityAnalysis):
     return bigfive, evidence, commercial
 
 
+def legacy_document(creator: Creator, audit: AudienceAudit | None = None,
+                    personality: PersonalityAnalysis | None = None):
+    """Documento completo que se devuelve por la API y se guarda en datos_<usuario>.json.
+
+    Misma composición que LegacyJsonCreatorRepository.save, pero sin escribir a disco.
+    """
+    data = to_legacy_dict(creator)
+    if personality is not None:
+        data["analisis_bigfive"], data["analisis_bigfive_evidencia"], data["perfil_comercial"] = \
+            personality_sections(personality)
+    if audit is not None:
+        data["auditoria_audiencia"] = audit_section(audit)
+    return data
+
+
 def _count(value):
     """Solo enteros exactos; los textos del scraper legado ("1.2M") y lo demás quedan como desconocidos."""
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
@@ -179,12 +194,7 @@ class LegacyJsonCreatorRepository(CreatorRepository):
     def save(self, creator: Creator, audit: AudienceAudit | None = None,
              personality: PersonalityAnalysis | None = None):
         """Escribe datos_<usuario>.json completo (reemplaza el anterior) y devuelve su ruta."""
-        data = to_legacy_dict(creator)
-        if personality is not None:
-            data["analisis_bigfive"], data["analisis_bigfive_evidencia"], data["perfil_comercial"] = \
-                personality_sections(personality)
-        if audit is not None:
-            data["auditoria_audiencia"] = audit_section(audit)
+        data = legacy_document(creator, audit, personality)
         return self._write(self.path_for(creator.username), data)
 
     def load(self, username: Username) -> Creator:
