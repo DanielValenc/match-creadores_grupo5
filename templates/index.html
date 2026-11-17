@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101827" />
+    <title>Match Creadores | TikTok Intelligence</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #142033;
+        --muted: #68758a;
+        --line: #e7ebf1;
+        --paper: #f5f7fa;
+        --white: #fff;
+        --navy: #101827;
+        --blue: #4b75f2;
+        --cyan: #36c6c8;
+        --green: #17a87b;
+        --shadow: 0 14px 40px rgba(20, 32, 51, 0.07);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      .topbar {
+        background: var(--navy);
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .topbar-inner {
+        width: min(1180px, calc(100% - 40px));
+        margin: auto;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        font-size: 14px;
+      }
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 11px;
+        color: #07141b;
+        background: linear-gradient(135deg, #52dfc4, #67a9ff);
+        font-size: 17px;
+      }
+      .top-note {
+        color: #aeb9ca;
+        font-size: 12px;
+      }
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin: 34px auto 70px;
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 34px;
+        border-radius: 24px;
+        color: white;
+        background:
+          radial-gradient(
+            circle at 90% 15%,
+            rgba(64, 180, 190, 0.28),
+            transparent 30%
+          ),
+          linear-gradient(120deg, #14243c, #1b3150 68%, #1b4650);
+        box-shadow: 0 18px 48px rgba(20, 40, 65, 0.16);
+      }
+      .hero:after {
+        content: "";
+        position: absolute;
+        width: 270px;
+        height: 270px;
+        right: -100px;
+        bottom: -170px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 35px rgba(255, 255, 255, 0.025),
+          0 0 0 70px rgba(255, 255, 255, 0.02);
+        pointer-events: none;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #72dfcf;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 11px 0 8px;
+        font-size: clamp(27px, 4vw, 38px);
+        line-height: 1.12;
+        letter-spacing: -0.04em;
+      }
+      .hero-copy {
+        margin: 0;
+        max-width: 610px;
+        color: #c4d0df;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+      .search-form {
+        display: flex;
+        gap: 10px;
+        max-width: 660px;
+        margin-top: 25px;
+        position: relative;
+        z-index: 1;
+      }
+      .search-form input {
+        flex: 1;
+        min-width: 0;
+        height: 51px;
+        padding: 0 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        outline: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .search-form input::placeholder {
+        color: #aebdce;
+      }
+      .search-form input:focus {
+        border-color: #75dfd0;
+        box-shadow: 0 0 0 3px rgba(117, 223, 208, 0.15);
+      }
+      .primary-btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 0 20px;
+        min-height: 51px;
+        color: #08222a;
+        background: linear-gradient(135deg, #66e0c7, #79d4ed);
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+          transform 0.15s,
+          opacity 0.15s;
+        white-space: nowrap;
+      }
+      .primary-btn:hover {
+        transform: translateY(-1px);
+      }
+      .primary-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+        transform: none;
+      }
+      .hint {
+        margin: 12px 0 0;
+        color: #aebdce;
+        font-size: 11px;
+      }
+      .status {
+        display: none;
+        margin: 18px 0 0;
+        padding: 13px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status.visible {
+        display: block;
+      }
+      .status.info {
+        color: #1d4d70;
+        background: #e8f4fc;
+        border: 1px solid #cbe6f8;
+      }
+      .status.error {
+        color: #8a2632;
+        background: #fff0f1;
+        border: 1px solid #ffd6da;
+      }
+      .status.success {
+        color: #176447;
+        background: #eaf8f1;
+        border: 1px solid #c9edda;
+      }
+      .section {
+        margin-top: 30px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        margin-bottom: 15px;
+      }
+      .section-kicker {
+        margin: 0 0 5px;
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+      h2 {
+        margin: 0;
+        font-size: 21px;
+        letter-spacing: -0.025em;
+      }
+      .section-desc {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .profile-head {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        min-width: 0;
+      }
+      .avatar {
+        display: none;
+        width: 64px;
+        height: 64px;
+        flex: 0 0 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: var(--shadow);
+        background: #e4e9ef;
+      }
+      .user-tag {
+        display: inline-flex;
+        padding: 5px 10px;
+        margin-top: 7px;
+        border-radius: 20px;
+        color: #2853a5;
+        background: #edf2ff;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .stat-card,
+      .panel {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        box-shadow: var(--shadow);
+      }
+      .stat-card {
+        padding: 19px 20px;
+      }
+      .stat-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+      }
+      .stat-value {
+        margin-top: 7px;
+        font-size: 28px;
+        font-weight: 850;
+        letter-spacing: -0.04em;
+      }
+      .panel {
+        padding: 23px;
+      }
+      .bigfive-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+        gap: 24px;
+        align-items: center;
+      }
+      .score-list {
+        display: grid;
+        gap: 17px;
+      }
+      .score-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .score-top strong {
+        color: #2c60bd;
+        font-variant-numeric: tabular-nums;
+      }
+      .track {
+        height: 8px;
+        background: #edf0f5;
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .track > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #4d77f3, #36c7c5);
+      }
+      .chart-wrap {
+        width: 100%;
+        max-width: 420px;
+        margin: auto;
+        min-height: 270px;
+        display: grid;
+        place-items: center;
+      }
+      .chart-wrap canvas {
+        max-height: 300px;
+      }
+      .notice {
+        margin-top: 18px;
+        padding: 12px 14px;
+        border-radius: 11px;
+        background: #f3f6fb;
+        color: #66748a;
+        font-size: 11px;
+        line-height: 1.55;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 17px 18px;
+        border-radius: 13px;
+        background: linear-gradient(110deg, #f1f5ff, #effbfa);
+      }
+      .summary h3 {
+        margin: 0 0 7px;
+        font-size: 12px;
+      }
+      .summary p {
+        margin: 0;
+        color: #526078;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .commercial-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .info-card {
+        padding: 18px;
+        background: #fbfcfe;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+      .info-label {
+        margin: 0 0 9px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      .info-value {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        font-weight: 650;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .chip {
+        padding: 6px 10px;
+        border: 1px solid #cde9e3;
+        color: #187360;
+        background: #effaf7;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .affinities {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 13px;
+        margin-top: 14px;
+      }
+      .affinity {
+        padding: 17px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+      .rank {
+        color: #8290a3;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .affinity h3 {
+        margin: 8px 0;
+        font-size: 14px;
+      }
+      .affinity p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .videos {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 13px;
+      }
+      .video-card {
+        min-width: 0;
+        overflow: hidden;
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        box-shadow: 0 8px 25px rgba(20, 32, 51, 0.05);
+      }
+      .video-thumb {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        background: #e8edf3;
+      }
+      .video-content {
+        padding: 12px;
+      }
+      .video-number {
+        color: #7d8ba0;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .video-description {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 65px;
+        margin: 8px 0 12px;
+        color: #48566b;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+      .video-link {
+        display: inline-block;
+        color: #3567d8;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .video-link:hover {
+        text-decoration: underline;
+      }
+      .empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+        background: #fff;
+        border: 1px dashed #cbd4e0;
+        border-radius: 14px;
+        font-size: 13px;
+      }
+      .hidden {
+        display: none !important;
+      }
+      footer {
+        margin-top: 34px;
+        padding: 20px 0;
+        text-align: center;
+        color: #8290a2;
+        border-top: 1px solid var(--line);
+        font-size: 10px;
+        line-height: 1.6;
+      }
+      @media (max-width: 900px) {
+        .videos {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .bigfive-layout {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 650px) {
+        .topbar-inner,
+        .page {
+          width: min(100% - 26px, 1180px);
+        }
+        .top-note {
+          display: none;
+        }
+        .page {
+          margin-top: 18px;
+        }
+        .hero {
+          padding: 25px 20px;
+          border-radius: 18px;
+        }
+        .search-form {
+          flex-direction: column;
+        }
+        .search-form .primary-btn {
+          width: 100%;
+        }
+        .stats {
+          gap: 8px;
+        }
+        .stat-card {
+          padding: 14px 11px;
+        }
+        .stat-value {
+          font-size: 21px;
+        }
+        .stat-label {
+          font-size: 9px;
+        }
+        .panel {
+          padding: 17px;
+        }
+        .bigfive-layout,
+        .commercial-grid {
+          grid-template-columns: 1fr;
+        }
+        .chart-wrap {
+          min-height: 230px;
+        }
+        .affinities {
+          grid-template-columns: 1fr;
+        }
+        .videos {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+        }
+        .section-head {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-mark">M</span><span>MATCH CREADORES</span>
+        </div>
+        <span class="top-note">TikTok Creator Intelligence · UCE</span>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div class="eyebrow">Creator analysis platform</div>
+        <h1>Conoce el potencial de<br />cada creador.</h1>
+        <p class="hero-copy">
+          Analiza un perfil público de TikTok, estima sus rasgos Big Five y
+          descubre qué categorías comerciales podrían conectar con su contenido.
+        </p>
+        <form class="search-form" id="search-form">
+          <input
+            id="username-input"
+            type="text"
+            placeholder="Ingresa el usuario, por ejemplo @danielvalencia365"
+            autocomplete="off"
+            maxlength="25"
+            required
+          />
+          <button class="primary-btn" id="analyze-button" type="submit">
+            Analizar perfil <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <p class="hint">
+          El proceso puede tardar un poco. Chromium se abrirá en este equipo
+          para realizar la extracción.
+        </p>
+      </section>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <section id="results" class="hidden">
+        <section class="section">
+          <div class="section-head">
+            <div class="profile-head">
+              <img id="profile-image" class="avatar" alt="Foto de perfil" />
+              <div>
+                <p class="section-kicker">Perfil analizado</p>
+                <h2 id="profile-title">Creador de TikTok</h2>
+                <span id="username-tag" class="user-tag">@usuario</span>
+              </div>
+            </div>
+            <span id="videos-counter" class="user-tag"
+              >0 videos analizados</span
+            >
+          </div>
+          <div class="stats" id="stats-container"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Personalidad estimada</p>
+              <h2>Modelo Big Five (OCEAN)</h2>
+              <p class="section-desc">
+                Distribución de los cinco rasgos calculada a partir de las
+                descripciones de los videos.
+              </p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="bigfive-layout">
+              <div id="score-list" class="score-list"></div>
+              <div class="chart-wrap">
+                <canvas
+                  id="bigfive-chart"
+                  aria-label="Gráfico radar de Big Five"
+                ></canvas>
+              </div>
+            </div>
+            <div class="notice">
+              Importante: los valores son una distribución relativa normalizada
+              que suma 100 %. Son estimaciones generadas por IA a partir del
+              texto disponible; no representan percentiles psicométricos
+              validados ni constituyen un diagnóstico psicológico.
+            </div>
+            <div class="summary">
+              <h3>Resumen del estilo del creador</h3>
+              <p id="personality-summary">No disponible.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Brand fit</p>
+              <h2>Perfil comercial</h2>
+              <p class="section-desc">
+                Señales de contenido que pueden orientar una evaluación inicial
+                de colaboración.
+              </p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="commercial-grid">
+              <div class="info-card">
+                <p class="info-label">Tono de comunicación</p>
+                <p id="communication-tone" class="info-value">No disponible</p>
+              </div>
+              <div class="info-card">
+                <p class="info-label">Intereses principales</p>
+                <div id="interest-chips" class="chips">
+                  <span class="section-desc">No disponible</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 20px">
+              <p class="info-label">Categorías de marca con mayor afinidad</p>
+              <div id="affinities" class="affinities"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Contenido reciente</p>
+              <h2>Últimos videos extraídos</h2>
+              <p class="section-desc">
+                Publicaciones públicas detectadas en el perfil. Selecciona un
+                video para abrirlo en TikTok.
+              </p>
+            </div>
+          </div>
+          <div id="videos-grid" class="videos"></div>
+        </section>
+      </section>
+
+      <footer>
+        Match Creadores · Proyecto académico UCE.<br />Los datos y las
+        estimaciones deben interpretarse con criterio; los resultados dependen
+        del contenido público disponible y de la extracción realizada.
+      </footer>
+    </main>
+
+    <script>
+      const form = document.getElementById("search-form");
+      const usernameInput = document.getElementById("username-input");
+      const analyzeButton = document.getElementById("analyze-button");
+      const statusBox = document.getElementById("status");
+      const results = document.getElementById("results");
+      let bigFiveChart = null;
+
+      const TRAITS = [
+        ["Apertura", "Apertura"],
+        ["Responsabilidad", "Responsabilidad"],
+        ["Extraversion", "Extraversión"],
+        ["Amabilidad", "Amabilidad"],
+        ["Neuroticismo", "Neuroticismo"],
+      ];
+
+      function showStatus(message, type = "info") {
+        statusBox.textContent = message;
+        statusBox.className = `status visible ${type}`;
+      }
+
+      function safeHttpUrl(value) {
+        try {
+          const url = new URL(String(value || ""), window.location.href);
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function makeElement(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null)
+          node.textContent = String(text);
+        return node;
+      }
+
+      function renderStats(profile) {
+        const container = document.getElementById("stats-container");
+        container.replaceChildren();
+        [
+          ["Siguiendo", profile.siguiendo],
+          ["Seguidores", profile.seguidores],
+          ["Me gusta", profile.me_gusta],
+        ].forEach(([label, value]) => {
+          const card = makeElement("div", "stat-card");
+          card.append(makeElement("div", "stat-label", label));
+          card.append(
+            makeElement("div", "stat-value", value || "No disponible"),
+          );
+          container.append(card);
+        });
+      }
+
+      function renderBigFive(analysis) {
+        const scoreList = document.getElementById("score-list");
+        scoreList.replaceChildren();
+        const values = TRAITS.map(([key, label]) => ({
+          label,
+          value: Number(analysis?.[key] ?? 0),
+        }));
+
+        values.forEach(({ label, value }) => {
+          const row = makeElement("div", "score-row");
+          const top = makeElement("div", "score-top");
+          top.append(makeElement("span", "", label));
+          top.append(makeElement("strong", "", `${value}%`));
+          const track = makeElement("div", "track");
+          const fill = makeElement("span");
+          fill.style.width = `${Math.max(0, Math.min(100, value))}%`;
+          track.append(fill);
+          row.append(top, track);
+          scoreList.append(row);
+        });
+
+        if (bigFiveChart) bigFiveChart.destroy();
+        const canvas = document.getElementById("bigfive-chart");
+        if (window.Chart) {
+          bigFiveChart = new Chart(canvas, {
+            type: "radar",
+            data: {
+              labels: values.map((item) => item.label),
+              datasets: [
+                {
+                  label: "Distribución relativa",
+                  data: values.map((item) => item.value),
+                  backgroundColor: "rgba(75, 117, 242, 0.17)",
+                  borderColor: "#4b75f2",
+                  pointBackgroundColor: "#36c6c8",
+                  pointBorderColor: "#ffffff",
+                  pointRadius: 4,
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => `${context.formattedValue}%`,
+                  },
+                },
+              },
+              scales: {
+                r: {
+                  min: 0,
+                  max: 100,
+                  ticks: { display: false, stepSize: 20 },
+                  grid: { color: "#e8edf4" },
+                  angleLines: { color: "#e8edf4" },
+                  pointLabels: {
+                    color: "#59677c",
+                    font: { size: 11, weight: "600" },
+                  },
+                },
+              },
+            },
+          });
+        }
+        document.getElementById("personality-summary").textContent =
+          analysis?.resumen || "No se generó un resumen.";
+      }
+
+      function renderCommercial(commercial) {
+        document.getElementById("communication-tone").textContent =
+          commercial?.tono_comunicacion || "No disponible";
+        const chips = document.getElementById("interest-chips");
+        chips.replaceChildren();
+        const interests = Array.isArray(commercial?.intereses)
+          ? commercial.intereses
+          : [];
+        if (interests.length)
+          interests.forEach((item) =>
+            chips.append(makeElement("span", "chip", item)),
+          );
+        else chips.append(makeElement("span", "section-desc", "No disponible"));
+
+        const affinities = document.getElementById("affinities");
+        affinities.replaceChildren();
+        const items = Array.isArray(commercial?.afinidad_marcas)
+          ? commercial.afinidad_marcas
+          : [];
+        if (!items.length) {
+          affinities.append(
+            makeElement(
+              "p",
+              "section-desc",
+              "No hay categorías de afinidad disponibles.",
+            ),
+          );
+          return;
+        }
+        items.slice(0, 3).forEach((item, index) => {
+          const card = makeElement("article", "affinity");
+          card.append(makeElement("div", "rank", `Afinidad #${index + 1}`));
+          card.append(makeElement("h3", "", item.categoria || "Categoría"));
+          card.append(
+            makeElement("p", "", item.motivo || "Sin explicación disponible."),
+          );
+          affinities.append(card);
+        });
+      }
+
+      function renderVideos(videos) {
+        const grid = document.getElementById("videos-grid");
+        grid.replaceChildren();
+        if (!Array.isArray(videos) || videos.length === 0) {
+          grid.className = "empty";
+          grid.textContent = "No se encontraron videos públicos para mostrar.";
+          return;
+        }
+        grid.className = "videos";
+        videos.slice(0, 10).forEach((video, index) => {
+          const card = makeElement("article", "video-card");
+          const thumbnailUrl = safeHttpUrl(video.miniatura);
+          if (thumbnailUrl) {
+            const image = makeElement("img", "video-thumb");
+            image.src = thumbnailUrl;
+            image.alt = `Miniatura del video ${index + 1}`;
+            image.loading = "lazy";
+            image.onerror = () => {
+              image.style.display = "none";
+            };
+            card.append(image);
+          } else {
+            const placeholder = makeElement("div", "video-thumb");
+            placeholder.style.display = "grid";
+            placeholder.style.placeItems = "center";
+            placeholder.textContent = "Sin miniatura";
+            card.append(placeholder);
+          }
+          const content = makeElement("div", "video-content");
+          content.append(
+            makeElement(
+              "div",
+              "video-number",
+              `Publicación #${video.posicion || index + 1}`,
+            ),
+          );
+          content.append(
+            makeElement(
+              "p",
+              "video-description",
+              video.descripcion || "Sin descripción disponible.",
+            ),
+          );
+          const linkUrl = safeHttpUrl(video.enlace);
+          if (linkUrl) {
+            const link = makeElement("a", "video-link", "Ver video original ↗");
+            link.href = linkUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            content.append(link);
+          }
+          card.append(content);
+          grid.append(card);
+        });
+      }
+
+      function renderResults(data) {
+        const profile = data.perfil || {};
+        const profileImage = document.getElementById("profile-image");
+        const imageUrl = safeHttpUrl(profile.foto_perfil);
+        if (imageUrl) {
+          profileImage.src = imageUrl;
+          profileImage.style.display = "block";
+        } else {
+          profileImage.removeAttribute("src");
+          profileImage.style.display = "none";
+        }
+        document.getElementById("profile-title").textContent =
+          `@${data.usuario || "usuario"}`;
+        document.getElementById("username-tag").textContent =
+          `TikTok · @${data.usuario || "usuario"}`;
+        const videoCount = Array.isArray(data.videos_recientes)
+          ? data.videos_recientes.length
+          : 0;
+        document.getElementById("videos-counter").textContent =
+          `${videoCount} videos extraídos`;
+        renderStats(profile);
+        renderBigFive(data.analisis_bigfive || {});
+        renderCommercial(data.perfil_comercial || {});
+        renderVideos(data.videos_recientes || []);
+        results.classList.remove("hidden");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = usernameInput.value.trim().replace(/^@/, "");
+        if (!username) {
+          showStatus("Escribe un usuario de TikTok para comenzar.", "error");
+          return;
+        }
+
+        analyzeButton.disabled = true;
+        analyzeButton.textContent = "Analizando…";
+        results.classList.add("hidden");
+        showStatus(
+          "Abriendo Chromium para extraer el perfil y sus videos. Después se enviarán las descripciones a Groq para generar el análisis. Este proceso puede tardar y TikTok podría solicitar resolver un CAPTCHA.",
+          "info",
+        );
+
+        try {
+          const response = await fetch("/api/analizar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username }),
+          });
+          const result = await response.json();
+          if (!response.ok || !result.ok)
+            throw new Error(
+              result.error || "No fue posible analizar el perfil.",
+            );
+          renderResults(result.datos);
+          showStatus(
+            `Análisis completado para @${result.datos.usuario}. Se muestran los datos obtenidos.`,
+            "success",
+          );
+        } catch (error) {
+          showStatus(
+            error.message || "Ocurrió un error al conectar con el servidor.",
+            "error",
+          );
+        } finally {
+          analyzeButton.disabled = false;
+          analyzeButton.innerHTML =
+            'Analizar perfil <span aria-hidden="true">→</span>';
+        }
+      });
+    </script>
+  </body>
+</html>
