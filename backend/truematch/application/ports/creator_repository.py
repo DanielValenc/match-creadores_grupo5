@@ -20,3 +20,7 @@ class CreatorRepository(ABC):
     @abstractmethod
     def save_audit(self, username: Username, audit: AudienceAudit) -> str:
         """Añade o reemplaza solo la auditoría de un creador ya guardado y devuelve dónde quedó."""
+
+    @abstractmethod
+    def save_personality(self, username: Username, personality: PersonalityAnalysis) -> str:
+        """Añade o reemplaza solo el análisis de personalidad de un creador ya guardado y devuelve dónde quedó."""

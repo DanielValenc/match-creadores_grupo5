@@ -68,7 +68,7 @@ class GroqPersonalityAnalyzer(PersonalityAnalyzer):
             raise PersonalityAnalysisError(f"Error procesando la respuesta de la IA: {error}") from None
 
     def analyze_publications(self, publications):
-        """publications: [(video_id, descripción)] en orden. Lo usa analisis_bigfive.py sobre el JSON heredado."""
+        """publications: [(video_id, descripción)] en orden."""
         references = build_references(publications)
         if not references:
             raise ValueError("El perfil no tiene descripciones de videos para analizar.")

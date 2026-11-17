@@ -1,6 +1,6 @@
 """Repositorio JSON en el formato heredado datos_<usuario>.json.
 
-Mantiene las claves que leen analisis_bigfive.py y la web (usuario, perfil.*, videos_recientes[].*) y añade,
+Mantiene las claves que lee la web (usuario, perfil.*, videos_recientes[].*) y añade,
 por video, id, fecha_publicacion y las cinco métricas. Los contadores son enteros exactos o null (desconocido),
 nunca textos abreviados como "1.2M". Las secciones de resultados son analisis_bigfive,
 analisis_bigfive_evidencia, perfil_comercial y auditoria_audiencia.
@@ -197,10 +197,20 @@ class LegacyJsonCreatorRepository(CreatorRepository):
         with open(self.path_for(username), "r", encoding="utf-8") as stream:
             return from_legacy_dict(json.load(stream), username)
 
-    def save_audit(self, username: Username, audit: AudienceAudit):
-        """Añade o reemplaza auditoria_audiencia sin tocar el resto del archivo."""
+    def _update(self, username: Username, sections):
+        """Añade o reemplaza las claves indicadas sin tocar el resto del archivo."""
         path = self.path_for(username)
         with open(path, "r", encoding="utf-8") as stream:
             data = json.load(stream)
-        data["auditoria_audiencia"] = audit_section(audit)
+        data.update(sections)
         return self._write(path, data)
+
+    def save_audit(self, username: Username, audit: AudienceAudit):
+        """Añade o reemplaza auditoria_audiencia sin tocar el resto del archivo."""
+        return self._update(username, {"auditoria_audiencia": audit_section(audit)})
+
+    def save_personality(self, username: Username, personality: PersonalityAnalysis):
+        """Añade o reemplaza analisis_bigfive, analisis_bigfive_evidencia y perfil_comercial."""
+        bigfive, evidence, commercial = personality_sections(personality)
+        return self._update(username, {"analisis_bigfive": bigfive, "analisis_bigfive_evidencia": evidence,
+                                       "perfil_comercial": commercial})
