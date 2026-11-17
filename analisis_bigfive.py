@@ -17,7 +17,9 @@ import argparse
 import glob
 import json
 import os
+from pathlib import Path
 import re
+import sys
 
 import requests
 
@@ -28,17 +30,17 @@ try:
 except ImportError:
     pass
 
-API_URL = "https://api.groq.com/openai/v1/chat/completions"
-MODELO_POR_DEFECTO = "qwen/qwen3.8-27b"  # el que funciona en tu cuenta
-RASGOS = ["Apertura", "Responsabilidad", "Extraversion", "Amabilidad", "Neuroticismo"]
+# El paquete truematch vive en backend/. Si no se instaló con `pip install -e backend`, se añade a la ruta.
+BACKEND_DIR = Path(__file__).resolve().parent / "backend"
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from truematch.infrastructure.ai.groq_client import DEFAULT_MODEL, GroqClient, GroqError  # noqa: E402
+from truematch.infrastructure.ai.groq_personality_analyzer import GroqPersonalityAnalyzer  # noqa: E402
+from truematch.infrastructure.persistence.legacy_json_repository import personality_sections  # noqa: E402
+
+MODELO_POR_DEFECTO = DEFAULT_MODEL  # el que funciona en tu cuenta
 SIN_DESCRIPCION = "Sin descripción disponible"
-MAX_CARACTERES = 6000  # límite de texto enviado a la IA
-CATEGORIAS_MARCA = [
-    "Moda y accesorios", "Belleza y cuidado personal", "Tecnología y gadgets",
-    "Deportes y fitness", "Alimentos y bebidas", "Viajes y turismo",
-    "Educación y cursos", "Entretenimiento y gaming", "Hogar y decoración",
-    "Finanzas y emprendimiento", "Salud y bienestar", "Mascotas", "Automotriz",
-]
 
 
 def obtener_api_key():
@@ -78,53 +80,22 @@ def resolver_archivo(entrada):
     return f"datos_{entrada}.json"
 
 
-def extraer_json(texto):
-    """Obtiene el objeto JSON de la respuesta, ignorando bloques <think> y markdown."""
-    texto = re.sub(r"<think>.*?</think>", "", texto, flags=re.DOTALL)
-    inicio, fin = texto.find("{"), texto.rfind("}")
-    if inicio == -1 or fin == -1:
-        raise ValueError("La respuesta de la IA no contiene un JSON.")
-    return json.loads(texto[inicio:fin + 1])
+def _video_id(video):
+    """ID del video: el del motor nuevo, el de su enlace o, en el formato antiguo sin enlace, su posición."""
+    if video.get("id"):
+        return str(video["id"])
+    match = re.search(r"/video/(\d+)", str(video.get("enlace", "")))
+    return match.group(1) if match else f"posicion-{video.get('posicion', '?')}"
 
 
-def normalizar_a_100(puntajes):
-    """Reparte los puntajes para que sumen exactamente 100 (método del mayor resto)."""
-    total = sum(puntajes.values())
-    if total == 0:
-        return {k: 100 // len(puntajes) for k in puntajes}
-    exactos = {k: v * 100 / total for k, v in puntajes.items()}
-    enteros = {k: int(v) for k, v in exactos.items()}
-    faltan = 100 - sum(enteros.values())
-    # Los puntos que sobran van a los rasgos con mayor parte decimal
-    for k in sorted(exactos, key=lambda k: exactos[k] - enteros[k], reverse=True)[:faltan]:
-        enteros[k] += 1
-    return enteros
-
-
-def validar_resultado(resultado):
-    """Valida la respuesta de la IA. Devuelve (bigfive, perfil_comercial)."""
-    brutos = {r: max(0.0, min(100.0, float(resultado[r]))) for r in RASGOS}
-    bigfive = normalizar_a_100(brutos)  # suman exactamente 100
-    bigfive["resumen"] = str(resultado.get("resumen", "")).strip()
-
-    afines = []
-    for item in resultado.get("afinidad_marcas", []):
-        if isinstance(item, dict) and item.get("categoria") in CATEGORIAS_MARCA:
-            afines.append({
-                "categoria": item["categoria"],
-                "motivo": str(item.get("motivo", "")).strip(),
-            })
-
-    intereses = resultado.get("intereses", [])
-    if not isinstance(intereses, list):
-        intereses = []
-
-    comercial = {
-        "tono_comunicacion": str(resultado.get("tono_comunicacion", "")).strip(),
-        "intereses": [str(i).strip() for i in intereses if str(i).strip()][:5],
-        "afinidad_marcas": afines[:3],
-    }
-    return bigfive, comercial
+def _publicaciones(datos):
+    """[(video_id, descripción)] de los videos con descripción, en su orden."""
+    resultado = []
+    for video in datos.get("videos_recientes", []):
+        descripcion = str(video.get("descripcion") or "").strip()
+        if descripcion and descripcion != SIN_DESCRIPCION:
+            resultado.append((_video_id(video), descripcion))
+    return resultado
 
 
 def analizar_perfil(archivo_json, api_key=None, modelo=None):
@@ -144,75 +115,31 @@ def analizar_perfil(archivo_json, api_key=None, modelo=None):
         print(f"Error: {archivo_json} no es un JSON válido.")
         return False
 
-    descripciones = [
-        v.get("descripcion", "").strip()
-        for v in datos.get("videos_recientes", [])
-    ]
-    descripciones = [d for d in descripciones if d and d != SIN_DESCRIPCION]
-    if not descripciones:
+    publicaciones = _publicaciones(datos)
+    if not publicaciones:
         print("Error: el perfil no tiene descripciones de videos para analizar.")
         return False
 
-    textos = " ".join(descripciones)[:MAX_CARACTERES]
-
-    prompt = f"""
-    Actúa como un analista de marketing con conocimientos de psicología computacional.
-    Analiza el siguiente texto extraído de los últimos videos de una cuenta de TikTok (descripciones y hashtags).
-    Tu objetivo es estimar su personalidad con el modelo Big Five (O.C.E.A.N.) y determinar con qué tipo de
-    productos o servicios podría estar alineada, para ayudar a una marca a decidir si colabora con esta persona.
-
-    Devuelve ÚNICAMENTE un objeto JSON válido con exactamente 9 claves:
-    1. "Apertura" (número entero 0-100)
-    2. "Responsabilidad" (número entero 0-100)
-    3. "Extraversion" (número entero 0-100)
-    4. "Amabilidad" (número entero 0-100)
-    5. "Neuroticismo" (número entero 0-100)
-    6. "resumen" (un párrafo de máximo 3 líneas describiendo la personalidad general y el estilo de esta persona).
-    7. "tono_comunicacion" (máximo 8 palabras, por ejemplo: cercano, humorístico y espontáneo).
-    8. "intereses" (lista de 3 a 5 temas principales que aparecen en su contenido).
-    9. "afinidad_marcas" (lista de exactamente 3 objetos, ordenados de mayor a menor afinidad; cada objeto tiene
-       la clave "categoria" y la clave "motivo", una frase corta que explique la afinidad basándose en el texto).
-       El valor de "categoria" debe ser exactamente una de estas opciones: {", ".join(CATEGORIAS_MARCA)}.
-
-
-    Texto a analizar: {textos}
-    """
-
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-    payload = {
-        "model": modelo,
-        "messages": [
-            {"role": "system", "content": "You output only valid JSON without markdown formatting."},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": 0.3,
-    }
-
-    print(f"Enviando datos a Groq (modelo: {modelo})...")
+    print(f"Enviando {len(publicaciones)} descripciones a Groq (modelo: {modelo})...")
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-    except requests.RequestException as e:
-        print(f"Error de conexión con la API: {e}")
+        analisis = GroqPersonalityAnalyzer(GroqClient(api_key, modelo)).analyze_publications(publicaciones)
+    except GroqError as e:
+        print(e)
         return False
-
-    if response.status_code != 200:
-        print(f"Error en la API. Código: {response.status_code}\n{response.text}")
-        return False
-
-    try:
-        contenido = response.json()["choices"][0]["message"]["content"]
-        bigfive, comercial = validar_resultado(extraer_json(contenido))
     except (KeyError, IndexError, TypeError, ValueError) as e:
         print(f"Error procesando la respuesta de la IA: {e}")
         return False
 
+    bigfive, evidencia, comercial = personality_sections(analisis)
     datos["analisis_bigfive"] = bigfive
+    datos["analisis_bigfive_evidencia"] = evidencia
     datos["perfil_comercial"] = comercial
     with open(archivo_json, "w", encoding="utf-8") as f:
         json.dump(datos, f, ensure_ascii=False, indent=4)
 
     print("¡Análisis completado exitosamente!")
-    print(json.dumps({"analisis_bigfive": bigfive, "perfil_comercial": comercial}, indent=4, ensure_ascii=False))
+    print(json.dumps({"analisis_bigfive": bigfive, "analisis_bigfive_evidencia": evidencia,
+                      "perfil_comercial": comercial}, indent=4, ensure_ascii=False))
     return True
 
 

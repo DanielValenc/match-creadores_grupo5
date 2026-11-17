@@ -8,4 +8,4 @@ datos_*.json
 node_modules/
 mobile/node_modules/
 .idea/
- 
+.truematch/
