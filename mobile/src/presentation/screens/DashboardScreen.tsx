@@ -10,10 +10,12 @@ import type { AudienceAudit } from '../../domain/audience-audit/AudienceAudit';
 import { MIN_AUDIT_SAMPLE_SIZE } from '../../domain/audience-audit/AudienceAudit';
 import type { BigFiveTrait } from '../../domain/creator-profiling/BigFiveProfile';
 import { BIG_FIVE_TRAITS } from '../../domain/creator-profiling/BigFiveProfile';
+import { computeBigFiveDistribution } from '../../domain/creator-profiling/BigFiveDistribution';
 
 type Props = { onNext: () => void };
 
 const AUDIT_SHORT_NOTE = 'Indicador estadístico. No prueba fraude ni autenticidad.';
+const BIG_FIVE_DISTRIBUTION_NOTE = 'Distribución relativa entre los rasgos con evidencia.';
 
 const TRAIT_LABELS: Record<BigFiveTrait, string> = {
   openness: 'Apertura',
@@ -104,10 +106,13 @@ export default function DashboardScreen({ onNext }: Props) {
   const audit = creator.audit;
   const score = audit?.organicScore ?? null;
   const curvas = benfordPaths(audit);
+  // Las barras muestran el reparto relativo (suma 100 %) solo entre los rasgos con puntaje.
+  const distribucion = computeBigFiveDistribution(creator.bigFive);
   const rasgos = BIG_FIVE_TRAITS.map((t) => ({
     key: t,
     label: TRAIT_LABELS[t],
-    v: creator.bigFive.traits[t].score,
+    scored: creator.bigFive.traits[t].score !== null,
+    v: distribucion?.[t] ?? null,
   }));
 
   return (
@@ -208,7 +213,9 @@ export default function DashboardScreen({ onNext }: Props) {
                 <View style={styles.row}>
                   <Text style={styles.rasgo}>{r.label}</Text>
                   {r.v !== null ? (
-                    <Text style={styles.rasgoValue}>{Math.round(r.v)}%</Text>
+                    <Text style={styles.rasgoValue}>{r.v}%</Text>
+                  ) : r.scored ? (
+                    <Text style={styles.rasgoValue}>0%</Text>
                   ) : (
                     <Text style={styles.rasgoMissing}>Evidencia insuficiente</Text>
                   )}
@@ -218,6 +225,7 @@ export default function DashboardScreen({ onNext }: Props) {
                 </View>
               </View>
             ))}
+            {distribucion && <Text style={styles.note}>{BIG_FIVE_DISTRIBUTION_NOTE}</Text>}
             <View style={styles.perfil}>
               <Text style={styles.perfilLabel}>Resumen generado por IA, no verificado</Text>
               <Text style={styles.perfilText}>
