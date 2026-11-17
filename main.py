@@ -10,6 +10,7 @@ Uso:
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 import sys
 import time
@@ -27,18 +28,29 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 
-def scrape_tiktok_profile(username):
-    """Extrae el perfil con el motor SCRAPINGTIKTOK y guarda datos_<usuario>.json.
-    Devuelve el nombre del archivo o None si falla (misma firma y contrato que el scraper anterior)."""
+def _analizador_groq():
+    """Analizador de personalidad con la clave y el modelo de siempre. Si falta GROQ_API_KEY, termina el
+    programa antes de abrir TikTok (SystemExit de obtener_api_key)."""
+    from analisis_bigfive import MODELO_POR_DEFECTO, obtener_api_key
+    from truematch.infrastructure.ai.groq_client import GroqClient
+    from truematch.infrastructure.ai.groq_personality_analyzer import GroqPersonalityAnalyzer
+
+    return GroqPersonalityAnalyzer(GroqClient(obtener_api_key(), os.getenv("GROQ_MODEL", MODELO_POR_DEFECTO)))
+
+
+def analizar_creador(username, analizador=None):
+    """Caso de uso AnalyzeCreator con el motor SCRAPINGTIKTOK: fuente → auditoría → personalidad (si hay
+    analizador) → datos_<usuario>.json. Devuelve el AnalysisResult o None si falla la extracción."""
     print(f"\nIniciando extracción para: @{username.strip().lstrip('@')} (motor SCRAPINGTIKTOK, hasta 30 videos)")
     try:
         # Import diferido: --motor legado sigue funcionando aunque falte alguna dependencia nueva.
+        from truematch.application.use_cases.analyze_creator import AnalyzeCreator
         from truematch.domain.creator_profiling.username import Username
         from truematch.infrastructure.persistence.legacy_json_repository import LegacyJsonCreatorRepository
         from truematch.infrastructure.tiktok.tiktok_creator_source import TikTokCreatorSource
 
-        creator = TikTokCreatorSource().fetch(Username.parse(username))
-        nombre_archivo = str(LegacyJsonCreatorRepository(".").save(creator))
+        caso_de_uso = AnalyzeCreator(TikTokCreatorSource(), LegacyJsonCreatorRepository("."), analizador)
+        resultado = caso_de_uso.execute(Username.parse(username))
     except Exception as e:
         print("\nError: no se pudo extraer el perfil con el motor nuevo.")
         print(f"Detalle: {e}")
@@ -46,8 +58,15 @@ def scrape_tiktok_profile(username):
               "python -m truematch.interfaces.cli.main session")
         return None
 
-    print(f"\n¡ÉXITO! Se extrajeron {len(creator.videos)} videos. Archivo: {nombre_archivo}")
-    return nombre_archivo
+    print(f"\n¡ÉXITO! Se extrajeron {len(resultado.creator.videos)} videos. Archivo: {resultado.location}")
+    return resultado
+
+
+def scrape_tiktok_profile(username):
+    """Extrae el perfil con el motor SCRAPINGTIKTOK, audita la audiencia y guarda datos_<usuario>.json.
+    Devuelve el nombre del archivo o None si falla (misma firma y contrato que el scraper anterior)."""
+    resultado = analizar_creador(username)
+    return resultado.location if resultado else None
 
 
 def scrape_tiktok_profile_legado(username):
@@ -210,16 +229,32 @@ def main():
 
     if args.motor == "legado":
         archivo = scrape_tiktok_profile_legado(usuario)
-    else:
-        archivo = scrape_tiktok_profile(usuario)
-
-    if archivo:
+        if not archivo:
+            return
         imprimir_resumen(archivo)
+        if not args.sin_analisis:
+            # Se importa aquí para no exigir GROQ_API_KEY si solo se quiere extraer
+            from analisis_bigfive import analizar_perfil
+            analizar_perfil(archivo)
+        from truematch.application.use_cases.audit_audience import AuditAudience
+        from truematch.domain.creator_profiling.username import Username
+        from truematch.infrastructure.persistence.legacy_json_repository import LegacyJsonCreatorRepository
+        auditoria = AuditAudience(LegacyJsonCreatorRepository(".")).execute(Username.parse(usuario))
+    else:
+        analizador = None if args.sin_analisis else _analizador_groq()
+        resultado = analizar_creador(usuario, analizador)
+        if not resultado:
+            return
+        imprimir_resumen(resultado.location)
+        from truematch.interfaces.cli.formatting import personality_line
+        if resultado.personality:
+            print(f"\n{personality_line(resultado.personality)}")
+        elif resultado.personality_error:
+            print(f"\nAnálisis de personalidad no completado: {resultado.personality_error}")
+        auditoria = resultado.audit
 
-    if archivo and not args.sin_analisis:
-        # Se importa aquí para no exigir GROQ_API_KEY si solo se quiere extraer
-        from analisis_bigfive import analizar_perfil
-        analizar_perfil(archivo)
+    from truematch.interfaces.cli.formatting import audit_line
+    print(f"\n{audit_line(auditoria)}")
 
 
 if __name__ == "__main__":

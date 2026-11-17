@@ -35,10 +35,9 @@ BACKEND_DIR = Path(__file__).resolve().parent / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from truematch.domain.creator_profiling.big_five import MIN_SUPPORTING_VIDEOS  # noqa: E402
 from truematch.infrastructure.ai.groq_client import DEFAULT_MODEL, GroqClient, GroqError  # noqa: E402
 from truematch.infrastructure.ai.groq_personality_analyzer import GroqPersonalityAnalyzer  # noqa: E402
-from truematch.infrastructure.ai.prompts import LEGACY_TRAIT_KEYS  # noqa: E402
+from truematch.infrastructure.persistence.legacy_json_repository import personality_sections  # noqa: E402
 
 MODELO_POR_DEFECTO = DEFAULT_MODEL  # el que funciona en tu cuenta
 SIN_DESCRIPCION = "Sin descripción disponible"
@@ -99,35 +98,6 @@ def _publicaciones(datos):
     return resultado
 
 
-def _a_formato_heredado(analisis):
-    """analisis_bigfive conserva sus claves (puntaje o null por rasgo + resumen) para la web;
-    la evidencia va en analisis_bigfive_evidencia."""
-    perfil = analisis.big_five
-    bigfive = {LEGACY_TRAIT_KEYS[t.trait]: (t.score.value if t.score else None) for t in perfil.traits}
-    bigfive["resumen"] = perfil.summary
-    evidencia = {
-        "videos_analizados": analisis.analyzed_videos,
-        "citas_descartadas": analisis.discarded_quotes,
-        "minimo_videos_por_rasgo": MIN_SUPPORTING_VIDEOS,
-        "rasgos": {
-            LEGACY_TRAIT_KEYS[t.trait]: {
-                "puntaje": t.score.value if t.score else None,
-                "estado": t.status.value,
-                "videos_con_evidencia": t.supporting_videos,
-                "cobertura_evidencia": t.evidence_coverage,
-                "evidencias": [{"video_id": e.video_id, "cita": e.quote} for e in t.evidence],
-            }
-            for t in perfil.traits
-        },
-    }
-    comercial = {
-        "tono_comunicacion": analisis.communication_tone,
-        "intereses": list(analisis.interests),
-        "afinidad_marcas": list(analisis.brand_affinity),
-    }
-    return bigfive, evidencia, comercial
-
-
 def analizar_perfil(archivo_json, api_key=None, modelo=None):
     """Analiza un archivo JSON de perfil y guarda 'analisis_bigfive' dentro de él.
     Devuelve True si el análisis fue exitoso."""
@@ -152,7 +122,7 @@ def analizar_perfil(archivo_json, api_key=None, modelo=None):
 
     print(f"Enviando {len(publicaciones)} descripciones a Groq (modelo: {modelo})...")
     try:
-        analisis = GroqPersonalityAnalyzer(GroqClient(api_key, modelo)).analyze(publicaciones)
+        analisis = GroqPersonalityAnalyzer(GroqClient(api_key, modelo)).analyze_publications(publicaciones)
     except GroqError as e:
         print(e)
         return False
@@ -160,7 +130,7 @@ def analizar_perfil(archivo_json, api_key=None, modelo=None):
         print(f"Error procesando la respuesta de la IA: {e}")
         return False
 
-    bigfive, evidencia, comercial = _a_formato_heredado(analisis)
+    bigfive, evidencia, comercial = personality_sections(analisis)
     datos["analisis_bigfive"] = bigfive
     datos["analisis_bigfive_evidencia"] = evidencia
     datos["perfil_comercial"] = comercial

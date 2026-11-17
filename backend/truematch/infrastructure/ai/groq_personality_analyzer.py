@@ -1,22 +1,13 @@
 """Capa anticorrupción del proveedor de IA: respuesta de Groq → BigFiveProfile con evidencia verificada."""
-from dataclasses import dataclass
-
+from truematch.application.ports.personality_analyzer import PersonalityAnalysisError, PersonalityAnalyzer
 from truematch.domain.creator_profiling.big_five import BigFiveProfile, TraitAssessment
+from truematch.domain.creator_profiling.creator import Creator
+from truematch.domain.creator_profiling.personality_analysis import PersonalityAnalysis
 from truematch.domain.creator_profiling.trait_evidence import verify_quotes
 
-from .groq_client import GroqClient
+from .groq_client import GroqClient, GroqError
 from .json_extractor import extract_json
 from .prompts import BRAND_CATEGORIES, LEGACY_TRAIT_KEYS, build_prompt, build_references
-
-
-@dataclass(frozen=True)
-class PersonalityAnalysis:
-    big_five: BigFiveProfile
-    communication_tone: str
-    interests: tuple[str, ...]
-    brand_affinity: tuple[dict, ...]   # [{"categoria", "motivo"}], como en el formato heredado
-    analyzed_videos: int               # videos enviados a la IA (con referencia p1…pN)
-    discarded_quotes: int              # citas que no aparecen literalmente o con referencia desconocida
 
 
 def _claims(trait_data, ref_to_video):
@@ -62,12 +53,22 @@ def parse_response(data, references):
     )
 
 
-class GroqPersonalityAnalyzer:
+class GroqPersonalityAnalyzer(PersonalityAnalyzer):
     def __init__(self, client: GroqClient):
         self.client = client
 
-    def analyze(self, publications):
-        """publications: [(video_id, descripción)] en orden. Devuelve PersonalityAnalysis."""
+    def analyze(self, creator: Creator) -> PersonalityAnalysis:
+        """Puerto PersonalityAnalyzer: analiza las descripciones de los videos del creador."""
+        publications = [(video.id, video.description) for video in creator.videos if video.has_description()]
+        try:
+            return self.analyze_publications(publications)
+        except GroqError as error:
+            raise PersonalityAnalysisError(str(error)) from None
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise PersonalityAnalysisError(f"Error procesando la respuesta de la IA: {error}") from None
+
+    def analyze_publications(self, publications):
+        """publications: [(video_id, descripción)] en orden. Lo usa analisis_bigfive.py sobre el JSON heredado."""
         references = build_references(publications)
         if not references:
             raise ValueError("El perfil no tiene descripciones de videos para analizar.")
