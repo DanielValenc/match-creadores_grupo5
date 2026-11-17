@@ -1,16 +1,20 @@
 """Web local de TrueMatch AI (Flask): formulario, extracción de TikTok y análisis.
 
 Levantar (desde backend/):  python -m truematch.interfaces.cli.main web
-La página recibe en /api/analizar el mismo documento que se guarda en datos_<usuario>.json.
+La página recibe en /api/analizar el mismo documento que se guarda en datos_<usuario>.json, y en
+/api/datos/<usuario> el que ya está guardado. Con /?usuario=<usuario> la página carga un resultado guardado.
 """
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
 from flask import Flask, jsonify, render_template, request
 
 from truematch.application.use_cases.analyze_creator import AnalyzeCreator
+from truematch.domain.audience_audit.organic_score import MIN_ORDERS_SPANNED, MIN_VALID_VALUES
+from truematch.domain.creator_profiling.big_five import MIN_SUPPORTING_VIDEOS
 from truematch.domain.creator_profiling.username import InvalidUsername, Username
 from truematch.infrastructure.ai.groq_client import GroqClient
 from truematch.infrastructure.ai.groq_personality_analyzer import GroqPersonalityAnalyzer
@@ -40,7 +44,27 @@ def build_use_case():
 
 @app.get("/")
 def inicio():
-    return render_template("index.html")
+    # Los mínimos vienen del dominio para que la página explique por qué falta un puntaje.
+    return render_template("index.html", min_valid_values=MIN_VALID_VALUES, min_orders_spanned=MIN_ORDERS_SPANNED,
+                           min_supporting_videos=MIN_SUPPORTING_VIDEOS)
+
+
+@app.get("/api/datos/<usuario>")
+def datos_guardados(usuario):
+    """Resultado ya guardado en datos_<usuario>.json, sin TikTok ni Groq (misma forma que /api/analizar)."""
+    try:
+        username = Username.parse(usuario)
+    except InvalidUsername:
+        return error("Ingresa un usuario válido de TikTok, sin espacios ni URL. Ejemplo: @usuario", 400)
+    path = LegacyJsonCreatorRepository(load_settings().data_dir).path_for(username)
+    if not path.is_file():
+        return error(f"No hay resultados guardados de @{username}. Analízalo primero desde esta página.", 404)
+    try:
+        datos = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        app.logger.exception("No se pudo leer %s", path)
+        return error(f"No se pudieron leer los resultados guardados de @{username}.", 500)
+    return jsonify({"ok": True, "datos": datos})
 
 
 @app.get("/api/health")
