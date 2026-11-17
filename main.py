@@ -5,9 +5,13 @@ Uso:
     python main.py                      # pregunta el usuario
     python main.py danielvalencia365    # usuario por argumento
     python main.py usuario --sin-analisis   # solo extrae, no analiza
+    python main.py usuario --motor legado   # usa el scraper anterior (temporal)
 """
 import argparse
 import json
+import logging
+from pathlib import Path
+import sys
 import time
 
 from playwright.sync_api import sync_playwright
@@ -17,9 +21,38 @@ PLACEHOLDER_VIDEO = "https://via.placeholder.com/300x400?text=Video"
 SIN_DESCRIPCION = "Sin descripción disponible"
 MAX_VIDEOS = 10
 
+# El paquete truematch vive en backend/. Si no se instaló con `pip install -e backend`, se añade a la ruta.
+BACKEND_DIR = Path(__file__).resolve().parent / "backend"
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 
 def scrape_tiktok_profile(username):
-    """Extrae el perfil y guarda datos_<usuario>.json. Devuelve el nombre del archivo o None si falla."""
+    """Extrae el perfil con el motor SCRAPINGTIKTOK y guarda datos_<usuario>.json.
+    Devuelve el nombre del archivo o None si falla (misma firma y contrato que el scraper anterior)."""
+    print(f"\nIniciando extracción para: @{username.strip().lstrip('@')} (motor SCRAPINGTIKTOK, hasta 25 videos)")
+    try:
+        # Import diferido: --motor legado sigue funcionando aunque falte alguna dependencia nueva.
+        from truematch.domain.creator_profiling.username import Username
+        from truematch.infrastructure.persistence.legacy_json_repository import LegacyJsonCreatorRepository
+        from truematch.infrastructure.tiktok.tiktok_creator_source import TikTokCreatorSource
+
+        creator = TikTokCreatorSource().fetch(Username.parse(username))
+        nombre_archivo = str(LegacyJsonCreatorRepository(".").save(creator))
+    except Exception as e:
+        print("\nError: no se pudo extraer el perfil con el motor nuevo.")
+        print(f"Detalle: {e}")
+        print("Si TikTok pide verificación o inicio de sesión, ejecuta desde backend/: "
+              "python -m truematch.interfaces.cli.main session")
+        return None
+
+    print(f"\n¡ÉXITO! Se extrajeron {len(creator.videos)} videos. Archivo: {nombre_archivo}")
+    return nombre_archivo
+
+
+def scrape_tiktok_profile_legado(username):
+    """Scraper anterior (sin cambios). Extrae el perfil y guarda datos_<usuario>.json.
+    Devuelve el nombre del archivo o None si falla."""
     print(f"\nIniciando extracción para: @{username}")
 
     datos_descarga = {"usuario": username, "perfil": {}, "videos_recientes": []}
@@ -125,12 +158,18 @@ def main():
     parser = argparse.ArgumentParser(description="Extrae datos de TikTok y analiza Big Five.")
     parser.add_argument("usuario", nargs="?", help="Username de TikTok (sin @)")
     parser.add_argument("--sin-analisis", action="store_true", help="Solo extraer, sin análisis Big Five")
+    parser.add_argument("--motor", choices=["nuevo", "legado"], default="nuevo",
+                        help="nuevo: SCRAPINGTIKTOK (por defecto); legado: scraper anterior")
     args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     usuario = args.usuario or input("Ingresa el username de TikTok (sin el @): ")
     usuario = usuario.strip().lstrip("@")
 
-    archivo = scrape_tiktok_profile(usuario)
+    if args.motor == "legado":
+        archivo = scrape_tiktok_profile_legado(usuario)
+    else:
+        archivo = scrape_tiktok_profile(usuario)
 
     if archivo and not args.sin_analisis:
         # Se importa aquí para no exigir GROQ_API_KEY si solo se quiere extraer
