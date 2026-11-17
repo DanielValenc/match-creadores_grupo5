@@ -7,6 +7,9 @@ export const DEFAULT_AUDIT_DISCLAIMER =
   'Una desviación respecto de Benford no demuestra bots, fraude ni compra de seguidores. ' +
   'Una distribución cercana tampoco demuestra autenticidad.';
 
+/** Valores válidos mínimos para calcular el puntaje orgánico. Con menos, el puntaje es null. */
+export const MIN_AUDIT_SAMPLE_SIZE = 110;
+
 export interface BenfordDigit {
   readonly digit: number; // 1-9
   readonly observed: number;

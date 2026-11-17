@@ -22,7 +22,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const [usuario, setUsuario] = useState('danielvalencia365');
+  const [usuario, setUsuario] = useState('');
 
   return (
     <Stack.Navigator
@@ -51,6 +51,7 @@ export default function RootNavigator() {
           <LoadingScreen
             usuario={usuario}
             onDone={() => navigation.replace('Dashboard')}
+            onBack={() => navigation.goBack()}
           />
         )}
       </Stack.Screen>

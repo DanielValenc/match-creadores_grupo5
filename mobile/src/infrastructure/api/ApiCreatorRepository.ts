@@ -19,6 +19,9 @@ export interface ApiCreatorRepositoryOptions {
 }
 
 // Implementa el puerto con la API de la web (README §13.2).
+// La API envuelve las respuestas (backend/truematch/interfaces/web/app.py):
+//   éxito -> {"ok": true, "datos": {...documento...}}
+//   fallo -> {"ok": false, "error": "mensaje"}
 // Solo deja salir errores del dominio.
 export class ApiCreatorRepository implements CreatorRepository {
   private readonly baseUrl: string;
@@ -84,8 +87,8 @@ export class ApiCreatorRepository implements CreatorRepository {
       clearTimeout(timer);
     }
 
-    if (response.ok) return toCreator(body, username);
-    throw this.toDomainError(response.status, body, username);
+    if (!response.ok) throw this.toDomainError(response.status, body, username);
+    return toCreator(unwrapDatos(body), username);
   }
 
   private toDomainError(status: number, body: unknown, username: Username): Error {
@@ -105,6 +108,23 @@ export class ApiCreatorRepository implements CreatorRepository {
         );
     }
   }
+}
+
+/** Extrae "datos" de {"ok": true, "datos": {...}}; cualquier otra forma es un fallo del servicio. */
+function unwrapDatos(body: unknown): unknown {
+  if (typeof body !== 'object' || body === null) {
+    throw new AnalysisServiceError('El servicio devolvió una respuesta con formato inválido.');
+  }
+  const { ok, datos } = body as { ok?: unknown; datos?: unknown };
+  if (ok !== true) {
+    throw new AnalysisServiceError(
+      serverMessage(body) ?? 'El servicio no pudo completar el análisis.',
+    );
+  }
+  if (typeof datos !== 'object' || datos === null || Array.isArray(datos)) {
+    throw new AnalysisServiceError('La respuesta del servicio no incluye los datos del análisis.');
+  }
+  return datos;
 }
 
 function serverMessage(body: unknown): string | null {
