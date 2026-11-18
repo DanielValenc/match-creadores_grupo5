@@ -1,148 +1,248 @@
-import { API_URL, TIMEOUT_ANALISIS_MS, TIMEOUT_RAPIDO_MS, USAR_GUARDADO } from './config';
+/**
+ * Cliente HTTP de TrueMatch Mobile.
+ * Consume la API Flask de la rama dev de TrueMatch AI:
+ *   GET  /api/health
+ *   GET  /api/datos/<usuario>
+ *   POST /api/analizar
+ */
 
-// Forma del documento que devuelve el backend (legacy_document en legacy_json_repository.py).
-export type BigFive = {
-  Apertura: number | null;
-  Responsabilidad: number | null;
-  Extraversion: number | null;
-  Amabilidad: number | null;
-  Neuroticismo: number | null;
+import {
+  API_URL,
+  USAR_GUARDADO,
+  TIMEOUT_ANALISIS_MS,
+  TIMEOUT_RAPIDO_MS,
+} from "./config";
+
+export interface Perfil {
+  foto_perfil?: string | null;
+  siguiendo?: number | null;
+  seguidores?: number | null;
+  me_gusta?: number | null;
+}
+
+export interface BigFive {
+  Apertura?: number | null;
+  Responsabilidad?: number | null;
+  Extraversion?: number | null;
+  Amabilidad?: number | null;
+  Neuroticismo?: number | null;
   resumen?: string;
-};
+}
 
-export type Video = {
+export interface VideoReciente {
   posicion: number;
   enlace: string;
-  miniatura: string;
-  descripcion: string;
+  miniatura?: string | null;
+  descripcion?: string | null;
+  estado?: string;
+  id: string;
+  fecha_publicacion?: string | null;
   vistas?: number | null;
   me_gusta?: number | null;
   comentarios?: number | null;
   compartidos?: number | null;
   guardados?: number | null;
-};
+}
 
-export type Documento = {
-  usuario: string;
-  perfil: {
-    foto_perfil: string;
-    siguiendo: number | null;
-    seguidores: number | null;
-    me_gusta: number | null;
-  };
-  videos_recientes: Video[];
-  analisis_bigfive?: BigFive;
-  perfil_comercial?: {
-    tono_comunicacion: string;
-    intereses: string[];
-    afinidad_marcas: { categoria: string; motivo: string }[];
-  };
-  auditoria_audiencia?: {
-    puntaje_organico: number | null;
-    tamano_muestra: number;
-    advertencias: string[];
-    disclaimer: string;
-  };
-};
+export interface AfinidadMarca {
+  categoria: string;
+  motivo: string;
+}
 
-export type CreadorResumen = {
-  usuario: string;
-  foto_perfil: string | null;
-  seguidores: number | null;
+export interface PerfilComercial {
+  tono_comunicacion?: string;
+  intereses?: string[];
+  afinidad_marcas?: AfinidadMarca[];
+}
+
+export interface DistribucionBenford {
+  digito: number;
+  observados: number;
+  esperados: number;
+  observado_porcentaje: number | null;
+  esperado_porcentaje: number;
+}
+
+export interface AuditoriaAudiencia {
   puntaje_organico: number | null;
-  actualizado: string;
-};
+  metricas?: string[];
+  tamano_muestra: number;
+  registros_totales?: number;
+  excluidos?: Record<string, number>;
+  mad?: number | null;
+  ordenes_de_magnitud?: number;
+  distribucion?: DistribucionBenford[];
+  advertencias?: string[];
+  disclaimer?: string;
+}
 
-export type PropuestaNueva = {
-  usuario_creador: string;
-  marca: string;
-  correo_contacto: string;
-  sector: string;
-  campana: string;
-  mensaje: string;
-  presupuesto?: number | null;
-};
+/** Documento devuelto por legacy_document() en el backend DDD. */
+export interface Documento {
+  usuario: string;
+  perfil: Perfil;
+  videos_recientes: VideoReciente[];
+  analisis_bigfive?: BigFive;
+  analisis_bigfive_evidencia?: Record<string, unknown>;
+  perfil_comercial?: PerfilComercial;
+  auditoria_audiencia?: AuditoriaAudiencia;
+}
 
-export type Propuesta = PropuestaNueva & {
-  id: string;
-  estado: string;
-  created_at: string;
-  updated_at: string;
-};
+interface ApiEnvelope<T> {
+  ok: boolean;
+  error?: string;
+  datos?: T;
+  servicio?: string;
+}
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  status: number;
 
-async function pedir<T>(ruta: string, init: RequestInit = {}, timeoutMs = TIMEOUT_RAPIDO_MS): Promise<T> {
-  const controlador = new AbortController();
-  const timer = setTimeout(() => controlador.abort(), timeoutMs);
-  try {
-    const resp = await fetch(`${API_URL}${ruta}`, { ...init, signal: controlador.signal });
-    let cuerpo: any = null;
-    try {
-      cuerpo = await resp.json();
-    } catch {
-      /* respuesta sin JSON */
-    }
-    if (!resp.ok || !cuerpo?.ok) {
-      throw new ApiError(cuerpo?.error ?? `El servidor respondió con el código ${resp.status}.`);
-    }
-    return cuerpo as T;
-  } catch (e: any) {
-    if (e instanceof ApiError) throw e;
-    if (e?.name === 'AbortError') {
-      throw new ApiError(`El servidor (${API_URL}) tardó demasiado en responder.`);
-    }
-    throw new ApiError(
-      `No se pudo conectar con el servidor (${API_URL}). Comprueba que Flask esté encendido, ` +
-        'que el teléfono y la PC estén en la misma Wi-Fi y que el firewall permita el puerto.'
-    );
-  } finally {
-    clearTimeout(timer);
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
   }
 }
 
-export const verificarServidor = () => pedir<{ ok: true }>('/api/health');
-
-export async function obtenerGuardado(username: string): Promise<Documento> {
-  const r = await pedir<{ datos: Documento }>(`/api/datos/${encodeURIComponent(username)}`);
-  return r.datos;
+function getBaseUrl(): string {
+  if (!API_URL) {
+    throw new Error(
+      "Falta EXPO_PUBLIC_API_URL. Configúrala en mobile/.env y reinicia Expo con npx expo start -c.",
+    );
+  }
+  return API_URL;
 }
 
-export async function listarCreadores(): Promise<CreadorResumen[]> {
-  const r = await pedir<{ creadores: CreadorResumen[] }>('/api/creadores');
-  return r.creadores;
+async function requestEnvelope<T>(
+  path: string,
+  options: RequestInit = {},
+  timeoutMs = TIMEOUT_RAPIDO_MS,
+  externalSignal?: AbortSignal,
+): Promise<ApiEnvelope<T>> {
+  const controller = new AbortController();
+  const relayAbort = () => controller.abort();
+
+  if (externalSignal?.aborted) {
+    controller.abort();
+  } else {
+    externalSignal?.addEventListener("abort", relayAbort, { once: true });
+  }
+
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    let response: Response;
+
+    try {
+      response = await fetch(`${getBaseUrl()}${path}`, {
+        ...options,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (externalSignal?.aborted) {
+        throw new Error("El análisis fue cancelado.");
+      }
+      if (controller.signal.aborted) {
+        throw new Error(
+          `La solicitud superó el tiempo límite de ${Math.round(timeoutMs / 1000)} segundos.`,
+        );
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `No se pudo conectar con Flask: ${detail}. Comprueba la IP, el puerto 5000, el Wi-Fi y el Firewall de Windows.`,
+      );
+    }
+
+    let payload: ApiEnvelope<T>;
+    try {
+      payload = (await response.json()) as ApiEnvelope<T>;
+    } catch {
+      throw new ApiError(
+        "Flask devolvió una respuesta que no es JSON válido.",
+        response.status,
+      );
+    }
+
+    if (!response.ok || payload.ok !== true) {
+      throw new ApiError(
+        payload.error ||
+          `Error HTTP ${response.status} al consultar el backend.`,
+        response.status,
+      );
+    }
+
+    return payload;
+  } finally {
+    clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", relayAbort);
+  }
 }
 
-export async function enviarPropuesta(propuesta: PropuestaNueva): Promise<Propuesta> {
-  const r = await pedir<{ propuesta: Propuesta }>('/api/propuestas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(propuesta),
-  });
-  return r.propuesta;
-}
-
-export async function analizarCreador(username: string): Promise<Documento> {
-  const r = await pedir<{ datos: Documento }>(
-    '/api/analizar',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username }),
-    },
-    TIMEOUT_ANALISIS_MS
+export async function getHealth(): Promise<boolean> {
+  const result = await requestEnvelope<unknown>(
+    "/api/health",
+    { method: "GET" },
+    TIMEOUT_RAPIDO_MS,
   );
-  return r.datos;
+  return result.ok === true;
 }
 
-// Punto de entrada de las pantallas.
-export async function cargarCreador(username: string): Promise<Documento> {
+export async function getAnalisisGuardado(
+  username: string,
+): Promise<Documento> {
+  const cleanUsername = username.trim().replace(/^@/, "");
+  const result = await requestEnvelope<Documento>(
+    `/api/datos/${encodeURIComponent(cleanUsername)}`,
+    { method: "GET" },
+    TIMEOUT_RAPIDO_MS,
+  );
+
+  if (!result.datos) {
+    throw new ApiError("El backend no devolvió el análisis guardado.", 502);
+  }
+
+  return result.datos;
+}
+
+export async function analizarCreador(
+  username: string,
+  signal?: AbortSignal,
+): Promise<Documento> {
+  const cleanUsername = username.trim().replace(/^@/, "");
+
+  if (!cleanUsername) {
+    throw new Error("Ingresa un usuario de TikTok.");
+  }
+
+  // Modo opcional para probar usando un análisis que ya exista en el backend.
   if (USAR_GUARDADO) {
     try {
-      return await obtenerGuardado(username);
-    } catch {
-      /* no hay datos guardados (o el servidor no responde): se intenta el análisis completo */
+      return await getAnalisisGuardado(cleanUsername);
+    } catch (error) {
+      // Solo se inicia un análisis nuevo cuando el archivo guardado no existe.
+      if (!(error instanceof ApiError) || error.status !== 404) {
+        throw error;
+      }
     }
   }
-  return analizarCreador(username);
+
+  const result = await requestEnvelope<Documento>(
+    "/api/analizar",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: cleanUsername }),
+    },
+    TIMEOUT_ANALISIS_MS,
+    signal,
+  );
+
+  if (!result.datos) {
+    throw new ApiError(
+      "El backend terminó sin devolver el documento del creador.",
+      502,
+    );
+  }
+
+  return result.datos;
 }

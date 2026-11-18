@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, StatusBar } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../theme";
-import type { AuditoriaAudiencia } from "../services/api";
+import type { AuditoriaAudiencia } from "../api";
 
 type Props = {
   auditoria?: AuditoriaAudiencia;
@@ -88,14 +88,14 @@ export default function ReporteScreen({ auditoria, onNext }: Props) {
             <View style={styles.highlight}>
               <View style={styles.scoreWrap}>
                 <Text style={styles.big}>
-                  {auditoria.puntaje_organico === null
+                  {auditoria.puntaje_organico == null
                     ? "—"
                     : `${auditoria.puntaje_organico}%`}
                 </Text>
                 <Text style={styles.matchLabel}>Puntaje orgánico</Text>
               </View>
               <Text style={styles.highlightBody}>
-                {auditoria.puntaje_organico === null
+                {auditoria.puntaje_organico == null
                   ? "No se pudo calcular un puntaje con la muestra disponible."
                   : "Puntaje descriptivo calculado por la política de auditoría de TrueMatch."}
               </Text>
@@ -106,13 +106,13 @@ export default function ReporteScreen({ auditoria, onNext }: Props) {
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryCell}>
                   <Text style={styles.summaryValue}>
-                    {auditoria.tamano_muestra}
+                    {auditoria.tamano_muestra ?? "No disponible"}
                   </Text>
                   <Text style={styles.summaryLabel}>Registros válidos</Text>
                 </View>
                 <View style={styles.summaryCell}>
                   <Text style={styles.summaryValue}>
-                    {auditoria.registros_totales}
+                    {auditoria.registros_totales ?? "No disponible"}
                   </Text>
                   <Text style={styles.summaryLabel}>Registros totales</Text>
                 </View>
@@ -124,7 +124,7 @@ export default function ReporteScreen({ auditoria, onNext }: Props) {
                 </View>
                 <View style={styles.summaryCell}>
                   <Text style={styles.summaryValue}>
-                    {auditoria.ordenes_de_magnitud}
+                    {auditoria.ordenes_de_magnitud ?? "No disponible"}
                   </Text>
                   <Text style={styles.summaryLabel}>Órdenes de magnitud</Text>
                 </View>
@@ -157,13 +157,15 @@ export default function ReporteScreen({ auditoria, onNext }: Props) {
 
             <View style={styles.block}>
               <Text style={styles.blockTitle}>Registros excluidos</Text>
-              {Object.entries(auditoria.excluidos || {}).length ? (
-                Object.entries(auditoria.excluidos).map(([key, value]) => (
-                  <View key={key} style={styles.listRow}>
-                    <Text style={styles.body}>{key}</Text>
-                    <Text style={styles.listValue}>{value}</Text>
-                  </View>
-                ))
+              {Object.entries(auditoria.excluidos ?? {}).length ? (
+                Object.entries(auditoria.excluidos ?? {}).map(
+                  ([key, value]) => (
+                    <View key={key} style={styles.listRow}>
+                      <Text style={styles.body}>{key}</Text>
+                      <Text style={styles.listValue}>{value}</Text>
+                    </View>
+                  ),
+                )
               ) : (
                 <Text style={styles.body}>No se informaron exclusiones.</Text>
               )}

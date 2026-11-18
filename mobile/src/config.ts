@@ -1,16 +1,15 @@
-// URL del backend Flask.
-// Se configura en el archivo .env de la aplicación Mobile.
+/** Configuración central del cliente móvil TrueMatch. */
+
+// En un teléfono físico, usa la IPv4 Wi-Fi de la computadora donde corre Flask.
+// El valor de .env tiene prioridad sobre este fallback.
 export const API_URL = (
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:5000"
-).replace(/\/+$/, "");
+)
+  .trim()
+  .replace(/\/+$/, "");
 
-// Si es '1', intenta recuperar primero los resultados guardados.
-// Si es '0', ejecuta un análisis nuevo de TikTok.
 export const USAR_GUARDADO = process.env.EXPO_PUBLIC_USAR_GUARDADO === "1";
 
-// El análisis puede tardar bastante por TikTok, CAPTCHA y Groq.
-// 12 minutos para permitir la verificación manual de hasta 10 minutos.
+// El scraping puede tardar varios minutos, especialmente si requiere login/CAPTCHA.
 export const TIMEOUT_ANALISIS_MS = 720_000;
-
-// Tiempo máximo para consultas rápidas.
 export const TIMEOUT_RAPIDO_MS = 8_000;

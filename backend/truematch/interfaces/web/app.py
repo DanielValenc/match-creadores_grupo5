@@ -166,7 +166,7 @@ def lan_ip():
         return "<IP-DE-TU-PC>"
 
 
-def run(host="0.0.0.0", port=5000)::
+def run(host="0.0.0.0", port=5000):
     logging.basicConfig(level=logging.INFO)
     visible_en_red = host in ("0.0.0.0", "::")
     use_session = os.getenv("TRUEMATCH_SCRAPE_HEADLESS", "1") == "1"

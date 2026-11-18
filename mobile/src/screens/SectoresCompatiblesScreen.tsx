@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme";
-import type { PerfilComercial } from "../services/api";
+import type { PerfilComercial } from "../api";
 
 type Props = {
   perfilComercial?: PerfilComercial;

@@ -1,250 +1,223 @@
-/**
- * Cliente HTTP de TrueMatch Mobile.
- * Consume la API Flask de la rama dev de TrueMatch AI:
- *   GET  /api/health
- *   GET  /api/datos/<usuario>
- *   POST /api/analizar
- */
+import {
+  API_URL,
+  TIMEOUT_ANALISIS_MS,
+  TIMEOUT_RAPIDO_MS,
+  USAR_GUARDADO,
+} from "../config";
 
-export interface Perfil {
-  foto_perfil?: string | null;
-  siguiendo?: number | null;
-  seguidores?: number | null;
-  me_gusta?: number | null;
-}
-
-export interface BigFive {
-  Apertura?: number | null;
-  Responsabilidad?: number | null;
-  Extraversion?: number | null;
-  Amabilidad?: number | null;
-  Neuroticismo?: number | null;
+export type BigFive = {
+  Apertura: number | null;
+  Responsabilidad: number | null;
+  Extraversion: number | null;
+  Amabilidad: number | null;
+  Neuroticismo: number | null;
   resumen?: string;
-}
+};
 
-export interface VideoReciente {
+export type Video = {
   posicion: number;
   enlace: string;
-  miniatura?: string | null;
-  descripcion?: string | null;
-  estado?: string;
-  id: string;
-  fecha_publicacion?: string | null;
+  miniatura: string;
+  descripcion: string;
   vistas?: number | null;
   me_gusta?: number | null;
   comentarios?: number | null;
   compartidos?: number | null;
   guardados?: number | null;
-}
+};
 
-export interface AfinidadMarca {
+export type Perfil = {
+  foto_perfil?: string | null;
+  siguiendo?: number | null;
+  seguidores?: number | null;
+  me_gusta?: number | null;
+};
+
+export type AfinidadMarca = {
   categoria: string;
   motivo: string;
-}
+};
 
-export interface PerfilComercial {
+export type PerfilComercial = {
   tono_comunicacion?: string;
   intereses?: string[];
   afinidad_marcas?: AfinidadMarca[];
-}
+};
 
-export interface DistribucionBenford {
+export type DistribucionBenford = {
   digito: number;
-  observados: number;
-  esperados: number;
+  observados?: number;
+  esperados?: number;
   observado_porcentaje: number | null;
   esperado_porcentaje: number;
-}
+};
 
-export interface AuditoriaAudiencia {
+export type AuditoriaAudiencia = {
   puntaje_organico: number | null;
-  metricas: string[];
   tamano_muestra: number;
-  registros_totales: number;
-  excluidos: Record<string, number>;
-  mad: number | null;
-  ordenes_de_magnitud: number;
-  distribucion: DistribucionBenford[];
+  registros_totales?: number;
+  metricas?: string[];
+  excluidos?: Record<string, number>;
+  mad?: number | null;
+  ordenes_de_magnitud?: number;
+  distribucion?: DistribucionBenford[];
   advertencias: string[];
   disclaimer: string;
-}
+};
 
-/** Documento devuelto por legacy_document() en el backend DDD. */
-export interface Documento {
+export type Documento = {
   usuario: string;
   perfil: Perfil;
-  videos_recientes: VideoReciente[];
+  videos_recientes: Video[];
   analisis_bigfive?: BigFive;
   analisis_bigfive_evidencia?: Record<string, unknown>;
   perfil_comercial?: PerfilComercial;
   auditoria_audiencia?: AuditoriaAudiencia;
-}
+};
 
-interface ApiEnvelope<T> {
-  ok: boolean;
-  error?: string;
-  datos?: T;
-  servicio?: string;
-}
+export type CreadorResumen = {
+  usuario: string;
+  foto_perfil: string | null;
+  seguidores: number | null;
+  puntaje_organico: number | null;
+  actualizado: string;
+};
+
+export type PropuestaNueva = {
+  usuario_creador: string;
+  marca: string;
+  correo_contacto: string;
+  sector: string;
+  campana: string;
+  mensaje: string;
+  presupuesto?: number | null;
+};
+
+export type Propuesta = PropuestaNueva & {
+  id: string;
+  estado: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export class ApiError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
+  constructor(message: string) {
     super(message);
     this.name = "ApiError";
-    this.status = status;
   }
 }
 
-// Configura esta variable en mobile/.env. No uses localhost desde un teléfono físico.
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "")
-  .trim()
-  .replace(/\/+$/, "");
-
-export const USAR_GUARDADO = process.env.EXPO_PUBLIC_USAR_GUARDADO === "1";
-export const TIMEOUT_ANALISIS_MS = 600_000;
-export const TIMEOUT_RAPIDO_MS = 8_000;
-
-function getBaseUrl(): string {
-  if (!API_URL) {
-    throw new Error(
-      "Falta EXPO_PUBLIC_API_URL. Configúrala en mobile/.env y reinicia Expo con npx expo start -c.",
-    );
-  }
-  return API_URL;
-}
-
-async function requestEnvelope<T>(
-  path: string,
-  options: RequestInit = {},
+async function pedir<T>(
+  ruta: string,
+  init: RequestInit = {},
   timeoutMs = TIMEOUT_RAPIDO_MS,
-  externalSignal?: AbortSignal,
-): Promise<ApiEnvelope<T>> {
-  const controller = new AbortController();
-  const relayAbort = () => controller.abort();
-
-  if (externalSignal?.aborted) {
-    controller.abort();
-  } else {
-    externalSignal?.addEventListener("abort", relayAbort, { once: true });
-  }
-
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+): Promise<T> {
+  const controlador = new AbortController();
+  const timer = setTimeout(() => controlador.abort(), timeoutMs);
 
   try {
-    let response: Response;
+    const response = await fetch(`${API_URL}${ruta}`, {
+      ...init,
+      signal: controlador.signal,
+    });
+
+    let cuerpo: any = null;
 
     try {
-      response = await fetch(`${getBaseUrl()}${path}`, {
-        ...options,
-        signal: controller.signal,
-      });
-    } catch (error) {
-      if (externalSignal?.aborted) {
-        throw new Error("El análisis fue cancelado.");
-      }
-      if (controller.signal.aborted) {
-        throw new Error(
-          `La solicitud superó el tiempo límite de ${Math.round(timeoutMs / 1000)} segundos.`,
-        );
-      }
-      const detail = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `No se pudo conectar con Flask: ${detail}. Comprueba la IP, el puerto 5000, el Wi-Fi y el Firewall de Windows.`,
-      );
-    }
-
-    let payload: ApiEnvelope<T>;
-    try {
-      payload = (await response.json()) as ApiEnvelope<T>;
+      cuerpo = await response.json();
     } catch {
+      // La respuesta no contenía JSON.
+    }
+
+    if (!response.ok || cuerpo?.ok !== true) {
       throw new ApiError(
-        "Flask devolvió una respuesta que no es JSON válido.",
-        response.status,
+        cuerpo?.error ??
+          `El servidor respondió con el código ${response.status}.`,
       );
     }
 
-    if (!response.ok || payload.ok !== true) {
+    return cuerpo as T;
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    if (error?.name === "AbortError") {
       throw new ApiError(
-        payload.error ||
-          `Error HTTP ${response.status} al consultar el backend.`,
-        response.status,
+        `El servidor (${API_URL}) tardó demasiado en responder.`,
       );
     }
 
-    return payload;
+    throw new ApiError(
+      `No se pudo conectar con el servidor (${API_URL}). Comprueba que Flask esté encendido, que el teléfono y la PC estén en la misma Wi-Fi y que el firewall permita el puerto.`,
+    );
   } finally {
-    clearTimeout(timeout);
-    externalSignal?.removeEventListener("abort", relayAbort);
+    clearTimeout(timer);
   }
 }
 
-export async function getHealth(): Promise<boolean> {
-  const result = await requestEnvelope<unknown>(
-    "/api/health",
-    { method: "GET" },
-    TIMEOUT_RAPIDO_MS,
-  );
-  return result.ok === true;
-}
+export const verificarServidor = () => pedir<{ ok: true }>("/api/health");
 
-export async function getAnalisisGuardado(
-  username: string,
-): Promise<Documento> {
-  const cleanUsername = username.trim().replace(/^@/, "");
-  const result = await requestEnvelope<Documento>(
-    `/api/datos/${encodeURIComponent(cleanUsername)}`,
-    { method: "GET" },
-    TIMEOUT_RAPIDO_MS,
+export async function obtenerGuardado(username: string): Promise<Documento> {
+  const respuesta = await pedir<{ datos: Documento }>(
+    `/api/datos/${encodeURIComponent(username)}`,
   );
 
-  if (!result.datos) {
-    throw new ApiError("El backend no devolvió el análisis guardado.", 502);
-  }
-
-  return result.datos;
+  return respuesta.datos;
 }
 
-export async function analizarCreador(
-  username: string,
-  signal?: AbortSignal,
-): Promise<Documento> {
-  const cleanUsername = username.trim().replace(/^@/, "");
+export async function listarCreadores(): Promise<CreadorResumen[]> {
+  const respuesta = await pedir<{ creadores: CreadorResumen[] }>(
+    "/api/creadores",
+  );
 
-  if (!cleanUsername) {
-    throw new Error("Ingresa un usuario de TikTok.");
-  }
+  return respuesta.creadores;
+}
 
-  // Modo opcional para probar usando un análisis que ya exista en el backend.
-  if (USAR_GUARDADO) {
-    try {
-      return await getAnalisisGuardado(cleanUsername);
-    } catch (error) {
-      // Solo se inicia un análisis nuevo cuando el archivo guardado no existe.
-      if (!(error instanceof ApiError) || error.status !== 404) {
-        throw error;
-      }
-    }
-  }
-
-  const result = await requestEnvelope<Documento>(
+export async function analizarCreador(username: string): Promise<Documento> {
+  const respuesta = await pedir<{ datos: Documento }>(
     "/api/analizar",
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: cleanUsername }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
     },
     TIMEOUT_ANALISIS_MS,
-    signal,
   );
 
-  if (!result.datos) {
-    throw new ApiError(
-      "El backend terminó sin devolver el documento del creador.",
-      502,
-    );
+  return respuesta.datos;
+}
+
+export async function enviarPropuesta(
+  propuesta: PropuestaNueva,
+): Promise<Propuesta> {
+  const respuesta = await pedir<{ propuesta: Propuesta }>("/api/propuestas", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(propuesta),
+  });
+
+  return respuesta.propuesta;
+}
+
+export async function cargarCreador(username: string): Promise<Documento> {
+  const limpio = username.trim().replace(/^@/, "");
+
+  if (!limpio) {
+    throw new ApiError("Ingresa un usuario de TikTok.");
   }
 
-  return result.datos;
+  if (USAR_GUARDADO) {
+    try {
+      return await obtenerGuardado(limpio);
+    } catch {
+      // Si no hay datos guardados, se intenta el análisis completo.
+    }
+  }
+
+  return analizarCreador(limpio);
 }

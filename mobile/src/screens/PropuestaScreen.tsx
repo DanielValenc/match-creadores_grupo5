@@ -8,8 +8,8 @@ import { colors } from "../theme";
 type Props = { usuario: string; onHome: () => void };
 
 /**
- * Estado honesto de la función: la API DDD actual de dev no implementa todavía
- * POST /api/propuestas. Esta pantalla no debe afirmar que una propuesta fue enviada.
+ * Estado honesto de la función: falta validar la ruta y el contrato exacto
+ * que expone el módulo de propuestas del backend antes de enviar información.
  */
 export default function PropuestaScreen({ usuario, onHome }: Props) {
   return (
@@ -20,15 +20,14 @@ export default function PropuestaScreen({ usuario, onHome }: Props) {
           <View style={styles.iconWrap}>
             <FileText size={54} color={colors.blue} strokeWidth={1.7} />
           </View>
-          <Text style={styles.title}>Propuestas próximamente</Text>
+          <Text style={styles.title}>Propuestas</Text>
           <Text style={styles.desc}>
-            El análisis de @{usuario} se completó. Sin embargo, el backend
-            TrueMatch DDD de la rama dev todavía no dispone de un endpoint para
-            registrar y enviar propuestas.
+            El análisis de @{usuario} se completó. El backend registra un módulo
+            de propuestas, pero antes de enviar una solicitud debemos confirmar
+            la ruta y los campos que espera. Esta pantalla todavía no envía
+            datos.
           </Text>
-          <Text style={styles.note}>
-            No se ha enviado ninguna solicitud al creador.
-          </Text>
+          <Text style={styles.note}>No se ha enviado ninguna propuesta.</Text>
         </View>
 
         <PrimaryButton
