@@ -32,6 +32,7 @@ def usernames(values):
 
 
 def adapt_profile(raw, requested, max_videos=10):
+
     if not isinstance(raw, dict) or raw.get('success') is not True:
         # Do not expose upstream exceptions/URLs or turn an error into zero data.
         raise RuntimeError('El motor SCRAPINGTIKTOK no pudo completar la extracción del perfil.')

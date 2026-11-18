@@ -21,7 +21,7 @@ class AudienceAudit:
         enough_values = analysis["valid_records"] >= MIN_VALID_VALUES
         enough_range = (analysis["orders_spanned"] is not None
                         and analysis["orders_spanned"] >= MIN_ORDERS_SPANNED)
-        score = OrganicScore.from_mad(analysis["mad"]) if enough_values and enough_range else None
+        score = OrganicScore.from_mad(analysis["mad"], analysis["valid_records"]) if enough_values and enough_range else None
         return cls(
             analysis=MappingProxyType(analysis),
             organic_score=score,
