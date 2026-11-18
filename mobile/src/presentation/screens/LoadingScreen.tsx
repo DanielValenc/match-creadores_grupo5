@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, StatusBar, Animated, Easing } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Logo from '../components/Logo';
+import PrimaryButton from '../components/PrimaryButton';
+import { useCreatorAnalysis } from '../hooks/useCreatorAnalysis';
 import { colors } from '../theme';
 
-type Props = { usuario: string; onDone: () => void };
+type Props = { usuario: string; onDone: () => void; onBack: () => void };
 
 const STEPS = [
-  'Leyendo últimos 10 videos...',
+  'Leyendo videos recientes de TikTok...',
   'Aplicando Ley de Benford...',
   'Analizando rasgos Big Five (IA)...',
 ];
@@ -16,9 +18,23 @@ const STEPS = [
 const R = 83;
 const C = 2 * Math.PI * R;
 
-export default function LoadingScreen({ usuario, onDone }: Props) {
+export default function LoadingScreen({ usuario, onDone, onBack }: Props) {
   const [active, setActive] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
+  const { status, errorMessage, analyze } = useCreatorAnalysis();
+  const failed = status === 'error';
+
+  // Lanza el análisis real y navega al Dashboard solo cuando termina bien.
+  useEffect(() => {
+    let mounted = true;
+    analyze(usuario).then((ok) => {
+      if (ok && mounted) onDone();
+    });
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario]);
 
   useEffect(() => {
     Animated.loop(
@@ -33,11 +49,8 @@ export default function LoadingScreen({ usuario, onDone }: Props) {
       () => setActive((a) => Math.min(a + 1, STEPS.length - 1)),
       1500
     );
-    // Aquí luego puedes esperar la respuesta real de tu API en vez de un timer.
-    const t2 = setTimeout(onDone, 5000);
     return () => {
       clearInterval(t1);
-      clearTimeout(t2);
       spin.stopAnimation();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,6 +72,12 @@ export default function LoadingScreen({ usuario, onDone }: Props) {
           </View>
         </View>
 
+        {failed ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorTitle}>No se pudo completar el análisis</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : (
         <View style={styles.progress}>
           <View style={styles.spinner}>
             <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate }] }]}>
@@ -99,9 +118,16 @@ export default function LoadingScreen({ usuario, onDone }: Props) {
             ))}
           </View>
         </View>
+        )}
 
         <View style={styles.flex} />
-        <Text style={styles.footer}>Esto puede tomar unos segundos...</Text>
+        {failed ? (
+          <PrimaryButton label="Volver" onPress={onBack} />
+        ) : (
+          <Text style={styles.footer}>
+            Si no hay un análisis guardado, puede tardar varios minutos...
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -127,5 +153,13 @@ const styles = StyleSheet.create({
   step: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.cyan },
   stepText: { flex: 1, fontSize: 14, color: colors.mist },
+  errorBox: {
+    backgroundColor: colors.navyCard,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  errorTitle: { fontSize: 16, fontWeight: '600', color: colors.white },
+  errorText: { fontSize: 14, lineHeight: 20, color: colors.mist },
   footer: { fontSize: 13, color: colors.mist, textAlign: 'center' },
 });

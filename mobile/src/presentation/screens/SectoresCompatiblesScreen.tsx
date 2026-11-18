@@ -8,22 +8,28 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Shirt, Sparkles, Gamepad2, Plane } from 'lucide-react-native';
+import {
+  Baby,
+  Car,
+  Clapperboard,
+  Cpu,
+  Dumbbell,
+  Gamepad2,
+  GraduationCap,
+  Heart,
+  House,
+  Leaf,
+  PawPrint,
+  Plane,
+  Shirt,
+  Sparkles,
+  Tag,
+  Utensils,
+  Wallet,
+} from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-
-type Industry = {
-  id: string;
-  name: string;
-  match: number; // 0-100
-  Icon: LucideIcon;
-};
-
-const INDUSTRIES: Industry[] = [
-  { id: 'moda', name: 'Moda y Ropa', match: 92, Icon: Shirt },
-  { id: 'belleza', name: 'Maquillaje y Belleza', match: 85, Icon: Sparkles },
-  { id: 'tech', name: 'Videojuegos y Tecnología', match: 60, Icon: Gamepad2 },
-  { id: 'viajes', name: 'Viajes y Turismo', match: 45, Icon: Plane },
-];
+import { useCreatorAnalysis } from '../hooks/useCreatorAnalysis';
+import type { SectorAffinity } from '../../domain/brand-matching/SectorAffinity';
 
 const colors = {
   bg: '#F9FAFB',
@@ -45,26 +51,47 @@ const fonts = {
   bold: undefined as string | undefined,
 };
 
-function IndustryCard({ name, match, Icon }: Industry) {
+// Palabras clave (sin tildes, en minúsculas) → ícono. Gana la primera que aparezca en la categoría.
+const CATEGORY_ICONS: readonly [readonly string[], LucideIcon][] = [
+  [['finanz', 'emprend', 'banc', 'invers', 'cripto', 'seguro'], Wallet],
+  [['videojuego', 'gaming', 'esport'], Gamepad2],
+  [['tecnolog', 'gadget', 'software', 'electron'], Cpu],
+  [['educa', 'curso', 'aprendiz', 'formacion'], GraduationCap],
+  [['moda', 'ropa', 'calzado'], Shirt],
+  [['belleza', 'maquillaje', 'cosmetic', 'cuidado personal'], Sparkles],
+  [['viaje', 'turismo', 'hotel'], Plane],
+  [['deporte', 'fitness', 'gimnasio'], Dumbbell],
+  [['comida', 'aliment', 'bebida', 'gastronom', 'restaur'], Utensils],
+  [['salud', 'bienestar'], Heart],
+  [['hogar', 'decoracion', 'inmobili'], House],
+  [['auto', 'motor', 'vehicul'], Car],
+  [['entreten', 'cine', 'musica', 'streaming'], Clapperboard],
+  [['mascota'], PawPrint],
+  [['bebe', 'infantil', 'familia', 'maternidad'], Baby],
+  [['sostenib', 'ecolog', 'medio ambiente'], Leaf],
+];
+
+function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+function iconFor(category: string): LucideIcon {
+  const texto = normalizar(category);
+  const match = CATEGORY_ICONS.find(([claves]) => claves.some((k) => texto.includes(k)));
+  return match ? match[1] : Tag;
+}
+
+function SectorCard({ category, reason }: SectorAffinity) {
+  const Icon = iconFor(category);
   return (
     <View style={styles.card}>
       <View style={styles.cardTop}>
         <View style={styles.iconBox}>
           <Icon size={20} color={colors.blue} />
         </View>
-        <Text style={styles.cardName}>{name}</Text>
-        <Text style={styles.cardPercent}>{match}%</Text>
+        <Text style={styles.cardName}>{category}</Text>
       </View>
-
-      <View style={styles.matchBlock}>
-        <View style={styles.matchRow}>
-          <Text style={styles.matchLabel}>Match</Text>
-          <Text style={styles.matchValue}>{match}%</Text>
-        </View>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${match}%` }]} />
-        </View>
-      </View>
+      {reason.trim() !== '' && <Text style={styles.cardReason}>{reason}</Text>}
     </View>
   );
 }
@@ -78,6 +105,9 @@ export default function SectoresCompatiblesScreen({
   onContact,
   onCancel,
 }: Props) {
+  const { creator } = useCreatorAnalysis();
+  const sectores = creator?.sectorAffinities ?? [];
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content"/>
@@ -88,14 +118,22 @@ export default function SectoresCompatiblesScreen({
         <View style={styles.header}>
           <Text style={styles.title}>Sectores Compatibles</Text>
           <Text style={styles.subtitle}>
-            Prioriza las industrias con mayor afinidad para tu campaña.
+            Industrias afines al contenido del creador y el motivo de cada una.
           </Text>
         </View>
 
         <View style={styles.list}>
-          {INDUSTRIES.map((item) => (
-            <IndustryCard key={item.id} {...item} />
-          ))}
+          {!creator ? (
+            <Text style={styles.empty}>No hay un análisis cargado.</Text>
+          ) : sectores.length === 0 ? (
+            <Text style={styles.empty}>
+              El análisis no identificó sectores afines para este perfil.
+            </Text>
+          ) : (
+            sectores.map((item, i) => (
+              <SectorCard key={`${item.category}-${i}`} {...item} />
+            ))
+          )}
         </View>
 
         <View style={styles.actions}>
@@ -172,33 +210,17 @@ const styles = StyleSheet.create({
     color: colors.title,
     fontFamily: fonts.semibold,
   },
-  cardPercent: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.blue,
-    fontFamily: fonts.bold,
-  },
-  matchBlock: { gap: 6 },
-  matchRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  matchLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  cardReason: {
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.muted,
-    fontFamily: fonts.semibold,
+    fontFamily: fonts.regular,
   },
-  matchValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.blue,
-    fontFamily: fonts.semibold,
+  empty: {
+    fontSize: 14,
+    color: colors.muted,
+    fontFamily: fonts.regular,
   },
-  track: {
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: colors.border,
-    overflow: 'hidden',
-  },
-  fill: { height: 8, borderRadius: 999, backgroundColor: colors.blue },
   actions: { gap: 24, marginTop: 'auto' },
   button: {
     height: 63,
