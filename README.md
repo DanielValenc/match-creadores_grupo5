@@ -882,12 +882,13 @@ Los prompts utilizados y sus resultados están documentados en el reporte de evi
 
 ## 22. Créditos y licencias
 
-| Componente | Origen | Licencia |
-|---|---|---|
-| Motor de extracción SCRAPINGTIKTOK | Jccasav, integrado en `backend/truematch/infrastructure/tiktok/vendor/scrapingtiktok/` | MIT. Se conservan `LICENSE`, `PROVENANCE.json` e `INTEGRATION.patch` con los cambios aplicados |
-| Análisis de Benford, sesión persistente, adaptador del motor y pruebas | Proyecto media-scraper de Nicolás Caiza | Trasplantado con nota de origen en cada archivo |
-| Scraper inicial, enriquecimiento Big Five y prototipo de la app | Daniel Valencia | Base del proyecto |
-| Dashboard web | Jair Folleco | Diseño e interfaz |
+| Componente                                                                  | Origen | Licencia |
+|-----------------------------------------------------------------------------|--|--|
+| Motor de extracción SCRAPINGTIKTOK                                          | Jccasav, integrado en `backend/truematch/infrastructure/tiktok/vendor/scrapingtiktok/` | MIT. Se conservan `LICENSE`, `PROVENANCE.json` e `INTEGRATION.patch` con los cambios aplicados |
+| Análisis de Benford, sesión persistente, adaptador del motor y pruebas      | Proyecto media-scraper de Nicolás Caiza | Trasplantado con nota de origen en cada archivo |
+| Scraper inicial, enriquecimiento Big Five y prototipo de la app             | Daniel Valencia | Base del proyecto |
+| Dashboard web                                                               | Jair Folleco | Diseño e interfaz |
+| Reporte final, documentación académica, metodológica y pruebas de escritorio | Karen García | Autoría y documentación del proyecto |
 
 ---
 
